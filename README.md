@@ -1,1 +1,1 @@
-# ams
+# Artist Management System
