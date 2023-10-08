@@ -1,0 +1,39 @@
+{% extends "layouts/base.html" %}
+
+{% load static %}
+
+{% block title %} AMS - Dashboard {% endblock %}
+{% block sidebar_title %}{% endblock %}
+
+{% block head %}
+<style>
+    .sidebar-text-parent{
+        display: none!important;
+    } 
+    .sidebar-brand{
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Begin Page Content -->
+<div class="container-fluid">
+
+    <!-- Page Heading -->
+    <div class="mb-4" style="align-items: center;">
+    </div>
+
+    <!-- Content Row -->
+    <div class="row" style="margin-top: 200px;">
+        <div class="col-3"></div>
+        <div class="col-6 text-center">
+        <h1 class="h3 mb-0 text-gray-800 mt-2"> Welcome to AMS Dashboard !</h1>
+        </div>
+        <div class="col-3"></div>
+    </div>
+</div>
+<!-- /.container-fluid -->
+
+{% endblock %}
