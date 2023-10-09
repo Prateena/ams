@@ -3,10 +3,22 @@ from django.utils import timezone
 from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.shortcuts import render, redirect
+from django.http import HttpResponseForbidden
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import make_password, check_password
 
 from .forms import ArtistForm, UserForm, UserUpdateForm
+
+
+def superuser_required(view_func):
+    """
+    Custom decorator to allow access to only superusers.
+    """
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_superuser:
+            return HttpResponseForbidden("You do not have permission to perform this action.")
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
 
 
 # Get the current datetime
@@ -95,6 +107,7 @@ def dashboard_view(request):
 
 # Create User
 @login_required
+@superuser_required
 def create_user(request):
     if request.method == 'POST':
         form = UserForm(request.POST)
@@ -119,6 +132,7 @@ def create_user(request):
 
 # Read User
 @login_required
+@superuser_required
 def read_users(request):
     with connection.cursor() as cursor:
         cursor.execute("SELECT id, first_name, last_name, email, phone, dob, gender, address FROM dashboard_customuser WHERE is_superuser=False")
@@ -128,6 +142,7 @@ def read_users(request):
 
 # Update User
 @login_required
+@superuser_required
 def update_user(request, user_id):
     user = None
     if request.method == 'POST':
@@ -173,6 +188,7 @@ def update_user(request, user_id):
 
 # Delete User
 @login_required
+@superuser_required
 def delete_user(request, user_id):
     with connection.cursor() as cursor:
         cursor.execute("DELETE FROM dashboard_customuser WHERE id=%s", [user_id])
@@ -243,6 +259,7 @@ def update_artist(request, artist_id):
 
 # Delete Artist
 @login_required
+@superuser_required
 def delete_artist(request, artist_id):
     # Get the current timestamp
     deleted_at = timezone.now()
