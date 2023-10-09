@@ -191,7 +191,10 @@ def update_user(request, user_id):
 @superuser_required
 def delete_user(request, user_id):
     with connection.cursor() as cursor:
+        cursor.execute("SELECT email FROM dashboard_customuser WHERE id=%s", [user_id])
+        auth_user_email = cursor.fetchone()
         cursor.execute("DELETE FROM dashboard_customuser WHERE id=%s", [user_id])
+        cursor.execute("DELETE FROM auth_user WHERE email=%s", auth_user_email)
     return redirect('users')
 
 
