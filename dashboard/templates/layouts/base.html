@@ -74,6 +74,28 @@
         <!-- Divider -->
         <hr class="sidebar-divider" />
 
+        {% if user.is_superuser %}
+        <li class="nav-item {% if 'user' in request.path %} active{% endif %}">
+          <a class="nav-link" href="{% url 'users' %}">
+            <i class="fa fa-user"></i>
+            <span>Users</span></a
+          >
+        </li>
+        
+        <!-- Divider -->
+        <hr class="sidebar-divider" />
+        {% endif %}
+
+        <li class="nav-item {% if 'artist' in request.path %} active{% endif %}">
+          <a class="nav-link" href="{% url 'artists' %}">
+            <i class="fa fa-users"></i>
+            <span>Artists</span></a
+          >
+        </li>
+        
+        <!-- Divider -->
+        <hr class="sidebar-divider" />
+
         <!-- Sidebar Toggler (Sidebar) -->
         <div class="text-center d-none d-md-inline">
           <button class="rounded-circle border-0" id="sidebarToggle"></button>

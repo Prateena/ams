@@ -6,7 +6,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import make_password, check_password
 
-from .forms import ArtistForm
+from .forms import ArtistForm, UserForm
 
 
 # Get the current datetime
@@ -26,7 +26,7 @@ def signup_view(request):
         address = request.POST['address']
 
 
-        # Execute a raw SQL query to insert the user into the database
+        # Executing a raw SQL query to insert the user into the database
         with connection.cursor() as cursor:
             cursor.execute(
                 "INSERT INTO dashboard_customuser (username, password, first_name, last_name, email, is_superuser, is_staff, is_active, date_joined, phone, dob, gender, address) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
@@ -39,9 +39,9 @@ def signup_view(request):
                     email, False, False, True, current_datetime]
             )
 
-        return redirect('login')  # Redirect to the login page after signup
+        return redirect('login')  # Redirecting to the login page after signup
     else:
-        return render(request, 'user/signup.html')
+        return render(request, 'accounts/signup.html')
 
 
 def login_view(request):
@@ -49,7 +49,7 @@ def login_view(request):
         username = request.POST['email']
         password = request.POST['password']
 
-        # Execute a raw SQL query to retrieve the user's data
+        # Executing a raw SQL query to retrieve the user's data
         with connection.cursor() as cursor:
             cursor.execute(
                 "SELECT id, username, password FROM auth_user WHERE username = %s",
@@ -59,30 +59,30 @@ def login_view(request):
 
         if user_data:
             user_id, username, hashed_password = user_data
-            # Verify the password
+            # Verifying the password
             passwords_match = check_password(password, hashed_password)
             if passwords_match:
                 user = User.objects.get(id=user_id)
-                login(request, user)  # Log in the user
+                login(request, user)  # Logging in the user
                 return redirect('dashboard')
 
-        # Handle invalid login
-        return render(request, 'user/login.html', {'error_message': 'Invalid login credentials'})
+        # Handling invalid login
+        return render(request, 'accounts/login.html', {'error_message': 'Invalid login credentials'})
 
     else:
-        return render(request, 'user/login.html')
+        return render(request, 'accounts/login.html')
 
 
 def logout_view(request):
     if request.user.is_authenticated:
-        # Execute a raw SQL query to clear the user's session
+        # Executing a raw SQL query to clear the user's session
         with connection.cursor() as cursor:
             cursor.execute(
                 "UPDATE auth_user SET last_login = NULL WHERE id = %s",
                 [request.user.id]
             )
 
-        # Log the user out by calling Django's logout function
+        # Logging the user out by calling Django's logout function
         request.session.flush()
 
     return redirect('login')
@@ -91,6 +91,47 @@ def logout_view(request):
 @login_required
 def dashboard_view(request):
     return render(request, 'layouts/dashboard.html')
+
+
+# Create User
+@login_required
+def create_user(request):
+    if request.method == 'POST':
+        form = UserForm(request.POST)
+        if form.is_valid():
+            data = form.cleaned_data
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO dashboard_customuser (username, first_name, last_name, email, password, phone, dob, gender, address, is_superuser, is_staff, is_active, date_joined) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    [data['email'], data['first_name'], data['last_name'], data['email'], make_password(data['password']), data['phone'], data['dob'], data['gender'], data['address'], False, False, True, current_datetime]
+                )
+                cursor.execute(
+                    "INSERT INTO auth_user (username, first_name, last_name, email, password, is_superuser, is_staff, is_active, date_joined) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    [data['email'], data['first_name'], data['last_name'], data['email'], make_password(data['password']), False, False, True, current_datetime]
+                )
+            return redirect('users')
+    else:
+        form = UserForm()
+    return render(request, 'user/form.html', {'form': form})
+
+
+# Read User
+@login_required
+def read_users(request):
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT id, first_name, last_name, email, phone, dob, gender, address FROM dashboard_customuser WHERE is_superuser=False")
+        users = cursor.fetchall()
+    return render(request, 'user/list.html', {'users': users})
+
+
+# Delete User
+@login_required
+def delete_user(request, user_id):
+    with connection.cursor() as cursor:
+        cursor.execute("DELETE FROM dashboard_customuser WHERE id=%s", [user_id])
+    return redirect('users')
 
 
 # Create Artist
@@ -156,6 +197,7 @@ def update_artist(request, artist_id):
 
 
 # Delete Artist
+@login_required
 def delete_artist(request, artist_id):
     # Get the current timestamp
     deleted_at = timezone.now()

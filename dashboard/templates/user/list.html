@@ -1,0 +1,66 @@
+{% extends "layouts/base.html" %}
+
+{% load static %}
+
+{% block title %} Users {% endblock %}
+
+{% block content %}
+<div class="container-fluid page__container">
+    <div class="card document-card">
+        <div class="row mb-4 mt-4 mr-2">
+            <div class="col-md-12">
+                <div style="text-align: right">
+                    <a href="{% url 'create-user' %}" class="btn btn-outline-primary">
+                        <i class="fa fa-plus"></i>&nbsp; Add User
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="row ml-2 mr-2 mb-2 mt-2">
+            <div class="col-sm-12 document-table-space">
+                <table class="table  w-full no-footer" role="grid"  id="myTable">
+                    <thead class="table-space-top-bottom">
+                        <tr role="row">
+                            <th>S.N</th>
+                            <th>First Name</th>
+                            <th>Last Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Date of Birth</th>
+                            <th>Gender</th>
+                            <th>Address</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for obj in users %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ obj.1 }}</td>
+                            <td>{{ obj.2 }}</td>
+                            <td>{{ obj.3 }}</td>
+                            <td>{{ obj.4 }}</td>
+                            <td>{{ obj.5 }}</td>
+                            <td>{{ obj.6 }}</td>
+                            <td>{{ obj.7 }}</td>
+                            <td>
+                                <div class="btn-group" role="group" style="margin:auto;">
+                                    <a href="" class="btn-sm btn btn-info btn-success-space" data-toggle="tooltip" data-original-title='Modify'>
+                                        <i class="fa fa-pencil-alt"></i>
+                                    </a>
+                                    {% if request.user.is_superuser %}
+                                    <a href="{% url 'delete-user' obj.0 %}" data-toggle="tooltip" class="btn-sm btn btn-danger user-deactivate ml-2" data-original-title='Delete'>
+                                        <i class="fas fa-ban"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}    
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

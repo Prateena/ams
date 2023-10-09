@@ -54,7 +54,7 @@ class CustomUser(AbstractUser):
     phone = models.CharField(max_length=15)
     dob = models.DateField()
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
-    address = models.TextField()
+    address = models.CharField(max_length=255)
     groups = models.ManyToManyField(Group, blank=True, related_name='custom_user_groups')
     user_permissions = models.ManyToManyField(
         Permission,
