@@ -1,0 +1,29 @@
+{% extends "layouts/base.html" %}
+
+{% load static %}
+
+{% block title %} Artist {% endblock %}
+
+{% block content %}
+<div class="container-fluid page__container">
+    <div class="card card-form form-header-layout">
+        <h1 style="padding: 27px !important;"> Artist </h1>
+        <div class="row no-gutters container-fluid" style="border-top: 1px solid #EFEFEF">
+            <div class="col-lg-12 card-form__body card-body" style="background:none !important;">
+                <form method="post" action="" enctype="multipart/form-data" autocomplete="off">
+                    {% csrf_token %}
+                    {% for field in form %}
+                    <div class="form-group" >
+                        <label>{{ field.label }}{% if field.field.required %}* {% endif %}</label>
+                        {{ field }}
+                        <span style="color:red;">{{ field.errors|striptags|safe }}</span>
+                    </div>
+                    {% endfor %}    
+                    <button type="submit" class="btn btn-primary float-right"><i class="fa fa-check"></i> Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

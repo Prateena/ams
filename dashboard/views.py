@@ -6,6 +6,8 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import make_password, check_password
 
+from .forms import ArtistForm
+
 
 # Get the current datetime
 current_datetime = timezone.now()
@@ -89,3 +91,33 @@ def logout_view(request):
 @login_required
 def dashboard_view(request):
     return render(request, 'layouts/dashboard.html')
+
+
+# Create Artist
+@login_required
+def create_artist(request):
+    if request.method == 'POST':
+        form = ArtistForm(request.POST)
+        if form.is_valid():
+            data = form.cleaned_data
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO dashboard_artist (name, gender, dob, address, no_of_albums_released, first_release_year, created_at, updated_at) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+                    [data['name'], data['gender'], data['dob'], data['address'], data['no_of_albums_released'], data['first_release_year'], current_datetime, current_datetime]
+                )
+            return redirect('artists')
+    else:
+        form = ArtistForm()
+    return render(request, 'artist/form.html', {'form': form})
+
+
+# Read Artist
+@login_required
+def read_artists(request):
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT id, name, gender, dob, address, no_of_albums_released, first_release_year address FROM dashboard_artist")
+        artists = cursor.fetchall()
+    return render(request, 'artist/list.html', {'artists': artists})
+
+
