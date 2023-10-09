@@ -43,11 +43,11 @@
                             <td>{{ obj.6 }}</td>
                             <td>
                                 <div class="btn-group" role="group" style="margin:auto;">
-                                    <a href="" class="btn-sm btn btn-info btn-success-space" data-toggle="tooltip" data-original-title='Modify'>
+                                    <a href="{% url 'update-artist' obj.0 %}" class="btn-sm btn btn-info btn-success-space" data-toggle="tooltip" data-original-title='Modify'>
                                         <i class="fa fa-pencil-alt"></i>
                                     </a>
                                     {% if request.user.is_superuser %}
-                                    <a href="" data-toggle="tooltip" class="btn-sm btn btn-danger user-deactivate ml-2" data-original-title='Delete'>
+                                    <a href="{% url 'delete-artist' obj.0 %}" data-toggle="tooltip" class="btn-sm btn btn-danger user-deactivate ml-2" data-original-title='Delete'>
                                         <i class="fas fa-ban"></i>
                                     </a>
                                     {% endif %}

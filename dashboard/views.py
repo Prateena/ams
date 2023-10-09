@@ -116,8 +116,56 @@ def create_artist(request):
 @login_required
 def read_artists(request):
     with connection.cursor() as cursor:
-        cursor.execute("SELECT id, name, gender, dob, address, no_of_albums_released, first_release_year address FROM dashboard_artist")
+        cursor.execute("SELECT id, name, gender, dob, address, no_of_albums_released, first_release_year FROM dashboard_artist WHERE deleted_at IS NULL")
         artists = cursor.fetchall()
     return render(request, 'artist/list.html', {'artists': artists})
 
 
+# Update Artist
+@login_required
+def update_artist(request, artist_id):
+    artist = None
+    if request.method == 'POST':
+        form = ArtistForm(request.POST)
+        if form.is_valid():
+            data = form.cleaned_data
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE dashboard_artist "
+                    "SET name=%s, gender=%s, dob=%s, address=%s, no_of_albums_released=%s, first_release_year=%s, updated_at=%s "
+                    "WHERE id=%s",
+                    [data['name'], data['gender'], data['dob'], data['address'], data['no_of_albums_released'], data['first_release_year'], current_datetime, artist_id]
+                )
+            return redirect('artists')
+    else:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT name, gender, dob, address, no_of_albums_released, first_release_year FROM dashboard_artist WHERE id=%s", [artist_id])
+            artist = cursor.fetchone()
+        if artist:
+            form = ArtistForm(initial={
+                'name': artist[0],
+                'gender': artist[1],
+                'dob': artist[2],
+                'address': artist[3],
+                'no_of_albums_released': artist[4],
+                'first_release_year': artist[5],
+            })
+        else:
+            return redirect('artists')
+    return render(request, 'artist/form.html', {'form': form})
+
+
+# Delete Artist
+def delete_artist(request, artist_id):
+    # Get the current timestamp
+    deleted_at = timezone.now()
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "UPDATE dashboard_artist "
+            "SET deleted_at=%s "
+            "WHERE id=%s",
+            [deleted_at, artist_id]
+        )
+
+    return redirect('artists')
