@@ -45,7 +45,7 @@
                             <td>{{ obj.7 }}</td>
                             <td>
                                 <div class="btn-group" role="group" style="margin:auto;">
-                                    <a href="" class="btn-sm btn btn-info btn-success-space" data-toggle="tooltip" data-original-title='Modify'>
+                                    <a href="{% url 'update-user' obj.0 %}" class="btn-sm btn btn-info btn-success-space" data-toggle="tooltip" data-original-title='Modify'>
                                         <i class="fa fa-pencil-alt"></i>
                                     </a>
                                     {% if request.user.is_superuser %}

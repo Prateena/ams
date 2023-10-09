@@ -13,6 +13,7 @@ urlpatterns = [
     # user crud
     path('create/user/', views.create_user, name="create-user"),
     path('users/', views.read_users, name="users"),
+    path('update/user/<int:user_id>/', views.update_user, name='update-user'),
     path('delete/user/<int:user_id>/', views.delete_user, name="delete-user"),
 
     # artist crud

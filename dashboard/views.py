@@ -6,7 +6,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import make_password, check_password
 
-from .forms import ArtistForm, UserForm
+from .forms import ArtistForm, UserForm, UserUpdateForm
 
 
 # Get the current datetime
@@ -124,6 +124,51 @@ def read_users(request):
         cursor.execute("SELECT id, first_name, last_name, email, phone, dob, gender, address FROM dashboard_customuser WHERE is_superuser=False")
         users = cursor.fetchall()
     return render(request, 'user/list.html', {'users': users})
+
+
+# Update User
+@login_required
+def update_user(request, user_id):
+    user = None
+    if request.method == 'POST':
+        form = UserUpdateForm(request.POST)
+        if form.is_valid():
+            data = form.cleaned_data
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT email FROM dashboard_customuser WHERE id=%s", [user_id])
+                auth_user_email = cursor.fetchone()
+
+                cursor.execute(
+                    "UPDATE auth_user "
+                    "SET username=%s, first_name=%s, last_name=%s, email=%s"
+                    "WHERE email=%s",
+                    [data['email'], data['first_name'], data['last_name'], data['email'], auth_user_email]
+                )
+                cursor.execute(
+                    "UPDATE dashboard_customuser "
+                    "SET username=%s, first_name=%s, last_name=%s, email=%s, phone=%s, dob=%s, gender=%s, address=%s "
+                    "WHERE id=%s",
+                    [data['email'], data['first_name'], data['last_name'], data['email'], data['phone'], data['dob'], data['gender'], data['address'], user_id]
+                )
+   
+            return redirect('users')
+    else:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT first_name, last_name, email, phone, dob, gender, address FROM dashboard_customuser WHERE id=%s", [user_id])
+            user = cursor.fetchone()
+        if user:
+            form = UserUpdateForm(initial={
+                'first_name': user[0],
+                'last_name': user[1],
+                'email': user[2],
+                'phone': user[3],
+                'dob': user[4],
+                'gender': user[5],
+                'address': user[6],
+            })
+        else:
+            return redirect('users')
+    return render(request, 'user/form.html', {'form': form})
 
 
 # Delete User

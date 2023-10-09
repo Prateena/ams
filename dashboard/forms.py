@@ -17,6 +17,12 @@ class UserForm(FormControlMixin, forms.ModelForm):
         fields = ['first_name', 'last_name', 'email', 'password', 'phone', 'dob', 'gender', 'address']
 
 
+class UserUpdateForm(FormControlMixin, forms.ModelForm):
+    class Meta:
+        model = CustomUser
+        fields = ['first_name', 'last_name', 'email', 'phone', 'dob', 'gender', 'address']
+
+
 class ArtistForm(FormControlMixin, forms.ModelForm):
     class Meta:
         model = Artist
