@@ -31,4 +31,7 @@ urlpatterns = [
     # export artist csv
     path('export-artists-csv/', views.export_artists_csv, name='export_artists_csv'),
 
+    # import artist csv 
+    path('import-artists-csv/', views.import_artists_csv, name='import_artists_csv'),
+
 ]

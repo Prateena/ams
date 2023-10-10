@@ -1,4 +1,5 @@
 import csv
+from io import TextIOWrapper
 
 from django.db import connection
 from django.utils import timezone
@@ -10,7 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import make_password, check_password
 from django.urls import reverse
 
-from .forms import ArtistForm, UserForm, UserUpdateForm, SongForm
+from .forms import *
 from .models import *
 
 
@@ -236,7 +237,7 @@ def read_artists(request):
     with connection.cursor() as cursor:
         cursor.execute("SELECT id, name, gender, dob, address, no_of_albums_released, first_release_year FROM dashboard_artist WHERE deleted_at IS NULL")
         artists = cursor.fetchall()
-    return render(request, 'artist/list.html', {'artists': artists})
+    return render(request, 'artist/list.html', {'artists': artists, 'form':ArtistCSVImportForm()})
 
 
 # Update Artist
@@ -394,3 +395,35 @@ def export_artists_csv(request):
         writer.writerow(artist)
 
     return response
+
+
+def process_uploaded_csv(csv_file):
+    # Wrap the InMemoryUploadedFile in a TextIOWrapper to make it file-like
+    csv_file_wrapper = TextIOWrapper(csv_file.file, encoding='utf-8')
+
+    with connection.cursor() as cursor:
+        csv_reader = csv.reader(csv_file_wrapper)
+        
+        # Assuming the first row is the header, so we skip it
+        next(csv_reader, None)
+
+        for row in csv_reader:
+            cursor.execute(
+                    "INSERT INTO dashboard_artist (id, name, dob, gender, first_release_year, no_of_albums_released, address, created_at, updated_at) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    [row[0], row[1], row[2], row[3], row[4], row[5], row[6], current_datetime, current_datetime]
+                )
+
+
+# Import Artists CSV
+def import_artists_csv(request):
+    if request.method == 'POST':
+        form = ArtistCSVImportForm(request.POST, request.FILES)
+        if form.is_valid():
+            csv_file = request.FILES['csv_file']
+            process_uploaded_csv(csv_file)
+            return redirect('artists')
+    else:
+        form = ArtistCSVImportForm()
+
+    return render(request, 'artist/list.html', {'form': form})

@@ -7,7 +7,7 @@
 {% block breadcrumb %}
 <span>&nbsp; &raquo; &nbsp;</span>
 <a href="/artists/">Artists</a> 
-{% endblock%}
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid page__container">
@@ -15,6 +15,7 @@
         <div class="row mb-4 mt-4 mr-2">
             <div class="col-md-12">
                 <div style="text-align: right">
+                    <button class="btn btn-info" id="import-button">Import CSV</button>
                     <a href="{% url 'export_artists_csv' %}" class="btn btn-success">Export CSV</a>
                     <a href="{% url 'create-artist' %}" class="btn btn-outline-primary">
                         <i class="fa fa-plus"></i>&nbsp; Add Artist
@@ -71,4 +72,40 @@
         </div>
     </div>
 </div>
+
+<!-- Bootstrap Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" role="dialog" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">Import Data</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form  action="{% url 'import_artists_csv' %}" method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ form }}
+                <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block script %}
+
+<!-- Include jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        $('#import-button').click(function () {
+            $('#importModal').modal('show');
+        });
+    });
+</script>
 {% endblock %}
