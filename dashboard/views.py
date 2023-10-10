@@ -1,14 +1,21 @@
+import csv
+
 from django.db import connection
 from django.utils import timezone
 from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import make_password, check_password
+from django.urls import reverse
 
 from .forms import ArtistForm, UserForm, UserUpdateForm, SongForm
 from .models import *
+
+
+# Get the current datetime
+current_datetime = timezone.now()
 
 
 def superuser_required(view_func):
@@ -28,10 +35,6 @@ def login_authentication(view_func):
             return redirect('dashboard')  # Redirect to the dashboard page
         return view_func(request, *args, **kwargs)
     return _wrapped_view
-
-
-# Get the current datetime
-current_datetime = timezone.now()
 
 
 def signup_view(request):
@@ -373,3 +376,21 @@ def delete_song(request, artist_id, song_id):
         )
 
     return redirect('detail-artist', artist_id=artist_id)
+
+
+# Export Artists CSV
+def export_artists_csv(request):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="artists.csv"'
+
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT id, name, dob, gender, first_release_year, no_of_albums_released, address FROM dashboard_artist")
+        artists = cursor.fetchall()
+
+    writer = csv.writer(response)
+    writer.writerow(['ID', 'Name', 'Birthdate', 'Gender', 'First Release Year', 'No of Albums Released', 'Address'])
+
+    for artist in artists:
+        writer.writerow(artist)
+
+    return response

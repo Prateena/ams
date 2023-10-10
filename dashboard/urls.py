@@ -27,5 +27,8 @@ urlpatterns = [
     path('artist/<int:artist_id>/create-song/', views.create_song, name="create-song"),
     path('artist/<int:artist_id>/update-song/<int:song_id>/', views.update_song, name='update-song'),
     path('artist/<int:artist_id>/delete-song/<int:song_id>/', views.delete_song, name="delete-song"),
-    
+
+    # export artist csv
+    path('export-artists-csv/', views.export_artists_csv, name='export_artists_csv'),
+
 ]
