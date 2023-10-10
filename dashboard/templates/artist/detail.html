@@ -35,7 +35,7 @@
                         <tr>
                             <td>{{ forloop.counter }}</td>
                             <td>{{ obj.2 }}</td>
-                            <td>{% if obj.3 %}{{ obj.3 }}{% endif %}</td>
+                            <td>{% if obj.3 %}{{ obj.3 }}{% else %}-{% endif %}</td>
                             <td>{{ obj.4 }}</td>
                             <td>{% if obj.5 %}{{ obj.5 }}{% endif %}</td>
                             <td>
@@ -44,7 +44,7 @@
                                         <i class="fa fa-pencil-alt"></i>
                                     </a>
                                     {% if request.user.is_superuser %}
-                                    <a href="" data-toggle="tooltip" class="btn-sm btn btn-danger user-deactivate ml-2" data-original-title='Delete'>
+                                    <a href="{% url 'delete-song' artist.id obj.1 %}" data-toggle="tooltip" class="btn-sm btn btn-danger user-deactivate ml-2" data-original-title='Delete'>
                                         <i class="fas fa-ban"></i>
                                     </a>
                                     {% endif %}

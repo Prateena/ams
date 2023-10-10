@@ -299,7 +299,7 @@ def artist_detail(request, artist_id):
     return render(request, 'artist/detail.html', {'artist': artist, 'songs': songs, 'form': form})
 
 
-# Creates Song of a Particular Artist
+# Create Song of a Particular Artist
 @login_required
 def create_song(request, artist_id):
     if request.method == 'POST':
@@ -318,7 +318,7 @@ def create_song(request, artist_id):
     return render(request, 'song/form.html', {'form': form})
 
 
-# Updates Song
+# Update Song
 @login_required
 def update_song(request, artist_id, song_id):
     if request.method == 'POST':
@@ -348,3 +348,15 @@ def update_song(request, artist_id, song_id):
         else:
             return redirect('detail-artist', artist_id=artist_id)
     return render(request, 'song/form.html', {'form': form})
+
+
+# Delete Song
+@login_required
+def delete_song(request, artist_id, song_id):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "DELETE FROM dashboard_song WHERE id = %s",
+            [song_id]
+        )
+
+    return redirect('detail-artist', artist_id=artist_id)

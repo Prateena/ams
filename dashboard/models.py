@@ -93,14 +93,15 @@ class Artist(DateTimeModel, models.Model):
     
 
 GENRE_CHOICES = (
-    ('rnb', 'rnb'),
-    ('country', 'country'),
-    ('classic','classic'),
-    ('rock','rock'),
-    ('jazz','jazz'),
-    ('pop','pop')
+        ('Rock', 'Rock'),
+        ('Pop', 'Pop'),
+        ('Classic', 'Classic'),
+        ('Hip-Hop', 'Hip-Hop'),
+        ('R&B', 'R&B'),
+        ('Country', 'Country'),
+        ('Jazz', 'Jazz'),
+        ('Electronic', 'Electronic'),
 )
-
 
 class Song(DateTimeModel, models.Model):
     title = models.CharField(max_length=100)
@@ -115,4 +116,4 @@ class Song(DateTimeModel, models.Model):
         verbose_name_plural = 'Songs' 
 
     def __str__(self):
-        return self.title
+        return self.title + ' - ' + self.artist.name
