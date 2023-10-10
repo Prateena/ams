@@ -316,3 +316,35 @@ def create_song(request, artist_id):
     else:
         form = SongForm()
     return render(request, 'song/form.html', {'form': form})
+
+
+# Updates Song
+@login_required
+def update_song(request, artist_id, song_id):
+    if request.method == 'POST':
+        form = SongForm(request.POST)
+        if form.is_valid():
+            data = form.cleaned_data
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE dashboard_song "
+                    "SET title = %s, album_name=%s, genre=%s, release_year=%s, updated_at=%s "
+                    "WHERE id = %s",
+                    [data['title'], data['album_name'], data['genre'], data['release_year'], current_datetime, song_id]
+                )
+
+            return redirect('detail-artist', artist_id=artist_id)
+    else:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT title, album_name, genre, release_year FROM dashboard_song WHERE id=%s", [song_id])
+            song = cursor.fetchone()
+        if song:
+            form = SongForm(initial={
+                'title': song[0],
+                'album_name': song[1],
+                'genre': song[2],
+                'release_year': song[3],
+            })
+        else:
+            return redirect('detail-artist', artist_id=artist_id)
+    return render(request, 'song/form.html', {'form': form})
