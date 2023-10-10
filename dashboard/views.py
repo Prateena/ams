@@ -22,6 +22,14 @@ def superuser_required(view_func):
     return _wrapped_view
 
 
+def login_authentication(view_func):
+    def _wrapped_view(request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return redirect('dashboard')  # Redirect to the dashboard page
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
+
+
 # Get the current datetime
 current_datetime = timezone.now()
 
@@ -57,6 +65,7 @@ def signup_view(request):
         return render(request, 'accounts/signup.html')
 
 
+@login_authentication
 def login_view(request):
     if request.method == 'POST':
         username = request.POST['email']
@@ -332,12 +341,16 @@ def update_song(request, artist_id, song_id):
                     "WHERE id = %s",
                     [data['title'], data['album_name'], data['genre'], data['release_year'], current_datetime, song_id]
                 )
+                cursor.execute("SELECT id, name FROM dashboard_artist WHERE id=%s",[artist_id])
+                artist = cursor.fetchone()
 
             return redirect('detail-artist', artist_id=artist_id)
     else:
         with connection.cursor() as cursor:
             cursor.execute("SELECT title, album_name, genre, release_year FROM dashboard_song WHERE id=%s", [song_id])
             song = cursor.fetchone()
+            cursor.execute("SELECT id, name FROM dashboard_artist WHERE id=%s",[artist_id])
+            artist = cursor.fetchone()
         if song:
             form = SongForm(initial={
                 'title': song[0],
@@ -347,7 +360,7 @@ def update_song(request, artist_id, song_id):
             })
         else:
             return redirect('detail-artist', artist_id=artist_id)
-    return render(request, 'song/form.html', {'form': form})
+    return render(request, 'song/form.html', {'form': form, 'artist':artist})
 
 
 # Delete Song

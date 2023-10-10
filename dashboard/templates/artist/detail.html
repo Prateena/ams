@@ -4,6 +4,13 @@
 
 {% block title %} Songs by {{ artist }} {% endblock %}
 
+{% block breadcrumb %}
+<span>&nbsp; &raquo; &nbsp;</span>
+<a href="/artists/">Artists</a> 
+<span>&nbsp; &raquo; &nbsp;</span>
+<a href="">{{ artist }}</a> 
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid page__container">
     <h1 style="padding: 27px !important; text-align: center;">Songs by {{ artist }} </h1>

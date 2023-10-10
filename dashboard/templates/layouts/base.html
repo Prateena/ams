@@ -40,6 +40,9 @@
         max-width: 200px;
         height: auto;
       }
+      .breadcrumb{
+        margin-bottom: 0;
+      }
     </style>
   </head>
 
@@ -118,6 +121,12 @@
             >
               <i class="fa fa-bars"></i>
             </button>
+
+            <div class="breadcrumb">
+              <a href="/dashboard/">Home</a>
+              {% block breadcrumb %}{% endblock %}
+            </div>
+          
 
             <!-- Topbar Navbar -->
             <ul class="navbar-nav ml-auto">

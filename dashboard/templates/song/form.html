@@ -4,6 +4,13 @@
 
 {% block title %} Song {% endblock %}
 
+{% block breadcrumb %}
+<span>&nbsp; &raquo; &nbsp;</span>
+<a href="/artists/">Artists</a> 
+<span>&nbsp; &raquo; &nbsp;</span>
+<a href="{% url 'detail-artist' artist.0 %}">{{ artist.1 }}</a> 
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid page__container">
     <div class="card card-form form-header-layout">
