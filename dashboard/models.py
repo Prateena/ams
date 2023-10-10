@@ -98,13 +98,14 @@ GENRE_CHOICES = (
     ('classic','classic'),
     ('rock','rock'),
     ('jazz','jazz'),
+    ('pop','pop')
 )
 
 
 class Song(DateTimeModel, models.Model):
     title = models.CharField(max_length=100)
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE)
-    album_name = models.CharField(max_length=100)
+    album_name = models.CharField(max_length=100, blank=True, null=True)
     genre = models.CharField(max_length=10, choices=GENRE_CHOICES)
     release_year = models.IntegerField(blank=True, null=True)
 

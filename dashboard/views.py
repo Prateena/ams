@@ -2,12 +2,13 @@ from django.db import connection
 from django.utils import timezone
 from django.contrib.auth import login
 from django.contrib.auth.models import User
-from django.shortcuts import render, redirect
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponseForbidden
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import make_password, check_password
 
-from .forms import ArtistForm, UserForm, UserUpdateForm
+from .forms import ArtistForm, UserForm, UserUpdateForm, SongForm
+from .models import *
 
 
 def superuser_required(view_func):
@@ -276,3 +277,42 @@ def delete_artist(request, artist_id):
         )
 
     return redirect('artists')
+
+
+# Read Songs of Particular Artist
+def read_songs(artist_id):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT artist_id, id, title, album_name, genre, release_year FROM dashboard_song WHERE artist_id = %s",
+            [artist_id]
+        )
+        songs = cursor.fetchall()
+    return songs
+
+
+# Artist Detail
+@login_required
+def artist_detail(request, artist_id):
+    artist = get_object_or_404(Artist, pk=artist_id)
+    songs = read_songs(artist_id)  # Retrieve songs for the artist
+    form = SongForm()
+    return render(request, 'artist/detail.html', {'artist': artist, 'songs': songs, 'form': form})
+
+
+# Creates Song of a Particular Artist
+@login_required
+def create_song(request, artist_id):
+    if request.method == 'POST':
+        form = SongForm(request.POST)
+        if form.is_valid():
+            data = form.cleaned_data
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO dashboard_song (artist_id, title, album_name, genre, release_year, created_at, updated_at) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                    [artist_id, data['title'], data['album_name'], data['genre'], data['release_year'], current_datetime, current_datetime]
+                )
+            return redirect('detail-artist', artist_id=artist_id)
+    else:
+        form = SongForm()
+    return render(request, 'song/form.html', {'form': form})

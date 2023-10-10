@@ -21,5 +21,8 @@ urlpatterns = [
     path('artists/', views.read_artists, name="artists"),
     path('update/artist/<int:artist_id>/', views.update_artist, name='update-artist'),
     path('delete/artist/<int:artist_id>/', views.delete_artist, name="delete-artist"),
+    path('detail/artist/<int:artist_id>/', views.artist_detail, name='detail-artist'),
 
+    # song crud
+    path('artist/<int:artist_id>/create-song/', views.create_song, name="create-song"),
 ]

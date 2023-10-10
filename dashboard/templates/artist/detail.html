@@ -2,16 +2,17 @@
 
 {% load static %}
 
-{% block title %} Artists {% endblock %}
+{% block title %} Songs by {{ artist }} {% endblock %}
 
 {% block content %}
 <div class="container-fluid page__container">
+    <h1 style="padding: 27px !important; text-align: center;">Songs by {{ artist }} </h1>
     <div class="card document-card">
         <div class="row mb-4 mt-4 mr-2">
             <div class="col-md-12">
                 <div style="text-align: right">
-                    <a href="{% url 'create-artist' %}" class="btn btn-outline-primary">
-                        <i class="fa fa-plus"></i>&nbsp; Add Artist
+                    <a href="{% url 'create-song' artist.id %}" class="btn btn-outline-primary">
+                        <i class="fa fa-plus"></i>&nbsp; Add Songs
                     </a>
                 </div>
             </div>
@@ -22,35 +23,28 @@
                     <thead class="table-space-top-bottom">
                         <tr role="row">
                             <th>S.N</th>
-                            <th>Name</th>
-                            <th>Gender</th>
-                            <th>Date of Birth</th>
-                            <th>Address</th>
-                            <th>Number of Albums Released</th>
-                            <th>First Release Year</th>
+                            <th>Title</th>
+                            <th>Album Name</th>
+                            <th>Genre</th>
+                            <th>Release Year</th>
                             <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for obj in artists %}
+                        {% for obj in songs %}
                         <tr>
                             <td>{{ forloop.counter }}</td>
-                            <td>{{ obj.1 }}</td>
                             <td>{{ obj.2 }}</td>
-                            <td>{{ obj.3 }}</td>
+                            <td>{% if obj.3 %}{{ obj.3 }}{% endif %}</td>
                             <td>{{ obj.4 }}</td>
-                            <td>{{ obj.5 }}</td>
-                            <td>{{ obj.6 }}</td>
+                            <td>{% if obj.5 %}{{ obj.5 }}{% endif %}</td>
                             <td>
                                 <div class="btn-group" role="group" style="margin:auto;">
-                                    <a href="{% url 'detail-artist' obj.0 %}" class="btn-sm btn btn-secondary btn-success-space" data-toggle="tooltip" data-original-title='Modify'>
-                                        <i class="fa fa-eye"></i>
-                                    </a>
-                                    <a href="{% url 'update-artist' obj.0 %}" class="btn-sm btn btn-info btn-success-space ml-2" data-toggle="tooltip" data-original-title='Modify'>
+                                    <a href="" class="btn-sm btn btn-info btn-success-space ml-2" data-toggle="tooltip" data-original-title='Modify'>
                                         <i class="fa fa-pencil-alt"></i>
                                     </a>
                                     {% if request.user.is_superuser %}
-                                    <a href="{% url 'delete-artist' obj.0 %}" data-toggle="tooltip" class="btn-sm btn btn-danger user-deactivate ml-2" data-original-title='Delete'>
+                                    <a href="" data-toggle="tooltip" class="btn-sm btn btn-danger user-deactivate ml-2" data-original-title='Delete'>
                                         <i class="fas fa-ban"></i>
                                     </a>
                                     {% endif %}

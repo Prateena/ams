@@ -1,5 +1,5 @@
 from django import forms
-from .models import Artist, CustomUser
+from .models import Artist, CustomUser, Song
 
 
 class FormControlMixin:
@@ -27,3 +27,10 @@ class ArtistForm(FormControlMixin, forms.ModelForm):
     class Meta:
         model = Artist
         fields = ['name', 'gender', 'dob', 'address', 'no_of_albums_released', 'first_release_year']
+
+
+class SongForm(FormControlMixin, forms.ModelForm):
+    class Meta:
+        model = Song
+        fields = ['title','album_name','genre','release_year']
+
