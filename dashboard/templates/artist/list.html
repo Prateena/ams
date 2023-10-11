@@ -16,7 +16,7 @@
             <div class="col-md-12">
                 <div style="text-align: right">
                     <button class="btn btn-info" id="import-button">Import CSV</button>
-                    <a href="{% url 'export_artists_csv' %}" class="btn btn-success">Export CSV</a>
+                    <a href="{% url 'export_artist_and_song_csv' %}" class="btn btn-success">Export CSV</a>
                     <a href="{% url 'create-artist' %}" class="btn btn-outline-primary">
                         <i class="fa fa-plus"></i>&nbsp; Add Artist
                     </a>
@@ -84,7 +84,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form  action="{% url 'import_artists_csv' %}" method="post" enctype="multipart/form-data">
+                <form  action="{% url 'import_artist_and_song_csv' %}" method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     {{ form }}
                 <button type="submit" class="btn btn-primary">Submit</button>
@@ -98,7 +98,6 @@
 {% block script %}
 
 <!-- Include jQuery -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
 <script>

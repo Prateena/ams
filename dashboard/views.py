@@ -149,7 +149,7 @@ def create_user(request):
 @superuser_required
 def read_users(request):
     with connection.cursor() as cursor:
-        cursor.execute("SELECT id, first_name, last_name, email, phone, dob, gender, address FROM dashboard_customuser WHERE is_superuser=False")
+        cursor.execute("SELECT id, first_name, last_name, email, phone, dob, gender, address FROM dashboard_customuser WHERE is_superuser=False ORDER BY id")
         users = cursor.fetchall()
     return render(request, 'user/list.html', {'users': users})
 
@@ -235,9 +235,9 @@ def create_artist(request):
 @login_required
 def read_artists(request):
     with connection.cursor() as cursor:
-        cursor.execute("SELECT id, name, gender, dob, address, no_of_albums_released, first_release_year FROM dashboard_artist WHERE deleted_at IS NULL")
+        cursor.execute("SELECT id, name, gender, dob, address, no_of_albums_released, first_release_year FROM dashboard_artist WHERE deleted_at IS NULL ORDER BY id")
         artists = cursor.fetchall()
-    return render(request, 'artist/list.html', {'artists': artists, 'form':ArtistCSVImportForm()})
+    return render(request, 'artist/list.html', {'artists': artists, 'form':CSVImportForm()})
 
 
 # Update Artist
@@ -296,7 +296,7 @@ def delete_artist(request, artist_id):
 def read_songs(artist_id):
     with connection.cursor() as cursor:
         cursor.execute(
-            "SELECT artist_id, id, title, album_name, genre, release_year FROM dashboard_song WHERE artist_id = %s",
+            "SELECT artist_id, id, title, album_name, genre, release_year FROM dashboard_song WHERE artist_id = %s ORDER BY id",
             [artist_id]
         )
         songs = cursor.fetchall()
@@ -380,50 +380,96 @@ def delete_song(request, artist_id, song_id):
 
 
 # Export Artists CSV
-def export_artists_csv(request):
+def export_artist_and_song_csv(request):
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="artists.csv"'
+    response['Content-Disposition'] = 'attachment; filename="artist_and_their_songs.csv"'
 
     with connection.cursor() as cursor:
         cursor.execute("SELECT id, name, dob, gender, first_release_year, no_of_albums_released, address FROM dashboard_artist")
         artists = cursor.fetchall()
 
+        cursor.execute("SELECT id, title, artist_id, album_name, genre, release_year  FROM dashboard_song")
+        songs = cursor.fetchall()
+
     writer = csv.writer(response)
-    writer.writerow(['ID', 'Name', 'Birthdate', 'Gender', 'First Release Year', 'No of Albums Released', 'Address'])
+    writer.writerow(['Artist ID', 'Artist Name', 'Birthdate', 'Gender', 'First Release Year', 'No of Albums Released', 'Address'])
 
     for artist in artists:
         writer.writerow(artist)
 
+    # Write header for song data
+    song_header = ['Song ID', 'Song Title', 'Artist ID', 'Album Name', 'Genre', 'Release Year']
+    writer.writerow(song_header)
+
+    # Write song data
+    for song in songs:
+        writer.writerow(song)
+
     return response
 
 
-def process_uploaded_csv(csv_file):
-    # Wrap the InMemoryUploadedFile in a TextIOWrapper to make it file-like
-    csv_file_wrapper = TextIOWrapper(csv_file.file, encoding='utf-8')
-
+def artist_exists(artist_id):
     with connection.cursor() as cursor:
-        csv_reader = csv.reader(csv_file_wrapper)
-        
-        # Assuming the first row is the header, so we skip it
-        next(csv_reader, None)
-
-        for row in csv_reader:
-            cursor.execute(
-                    "INSERT INTO dashboard_artist (id, name, dob, gender, first_release_year, no_of_albums_released, address, created_at, updated_at) "
-                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                    [row[0], row[1], row[2], row[3], row[4], row[5], row[6], current_datetime, current_datetime]
-                )
+        cursor.execute("SELECT id FROM dashboard_artist WHERE id = %s", [artist_id])
+        row = cursor.fetchone()
+    return row is not None
 
 
-# Import Artists CSV
-def import_artists_csv(request):
+def song_exists(song_id):
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT id FROM dashboard_song WHERE id = %s", [song_id])
+        row = cursor.fetchone()
+    return row is not None
+
+
+def import_artist_and_song_csv(request):
     if request.method == 'POST':
-        form = ArtistCSVImportForm(request.POST, request.FILES)
+        form = CSVImportForm(request.POST, request.FILES)
         if form.is_valid():
             csv_file = request.FILES['csv_file']
-            process_uploaded_csv(csv_file)
-            return redirect('artists')
-    else:
-        form = ArtistCSVImportForm()
 
-    return render(request, 'artist/list.html', {'form': form})
+            with connection.cursor() as cursor:
+                csv_file_wrapper = TextIOWrapper(csv_file.file, encoding='utf-8')
+                csv_reader = csv.reader(csv_file_wrapper)
+                
+                # Initialize header flags
+                artist_header = False
+                song_header = False
+
+                for row in csv_reader:
+                    if not artist_header and row == ['Artist ID', 'Artist Name', 'Birthdate', 'Gender', 'First Release Year', 'No of Albums Released', 'Address']:
+                        # Skip the artist header
+                        artist_header = True
+                        continue
+
+                    if not song_header and row == ['Song ID', 'Song Title', 'Artist ID', 'Album Name', 'Genre', 'Release Year']:
+                        # Skip the song header
+                        song_header = True
+                        continue
+
+                    print(len(row))
+
+                    if artist_header and len(row) == 7:
+                        # Process artist data
+                        artist_id = int(row[0])
+                        if not artist_exists(artist_id):
+                            cursor.execute(
+                                    "INSERT INTO dashboard_artist (id, name, dob, gender, first_release_year, no_of_albums_released, address, created_at, updated_at) "
+                                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                    [row[0], row[1], row[2], row[3], row[4], row[5], row[6], current_datetime, current_datetime]
+                                    )
+
+                    if song_header and len(row) == 6:
+                        # Process song data
+                        song_id = int(row[0])
+                        if not song_exists(song_id):
+                            cursor.execute("""
+                                    INSERT INTO dashboard_song (id, title, artist_id, album_name, genre, release_year)
+                                    VALUES (%s, %s, %s, %s, %s, %s)
+                                """, row)
+
+            return HttpResponse('CSV file successfully imported.')
+    else:
+        form = CSVImportForm()
+
+    return render(request, 'artist/detail.html', {'form': form})

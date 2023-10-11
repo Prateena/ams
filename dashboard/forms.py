@@ -35,5 +35,5 @@ class SongForm(FormControlMixin, forms.ModelForm):
         fields = ['title','album_name','genre','release_year']
 
 
-class ArtistCSVImportForm(forms.Form):
+class CSVImportForm(forms.Form):
     csv_file = forms.FileField(label='Import CSV File')
