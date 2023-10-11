@@ -1,6 +1,7 @@
 import csv
 from io import TextIOWrapper
 
+from django.urls import reverse
 from django.db import connection
 from django.utils import timezone
 from django.contrib.auth import login
@@ -9,7 +10,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponseForbidden, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import make_password, check_password
-from django.urls import reverse
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from .forms import *
 from .models import *
@@ -36,6 +37,26 @@ def login_authentication(view_func):
             return redirect('dashboard')  # Redirect to the dashboard page
         return view_func(request, *args, **kwargs)
     return _wrapped_view
+
+
+def paginate(query, request, items_per_page=10):
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+        results = cursor.fetchall()
+    
+    paginator = Paginator(results, items_per_page)
+    page_number = request.GET.get('page')
+    
+    try:
+        page = paginator.page(page_number)
+    except PageNotAnInteger:
+        page = paginator.page(1)  # Display the first page
+        page_number = 1  # Set the page number to 1
+    except EmptyPage:
+        page = paginator.page(paginator.num_pages)  # Display the last page
+        page_number = paginator.num_pages  # Set the page number to the last page
+    
+    return page.object_list, page_number
 
 
 def signup_view(request):
@@ -148,10 +169,13 @@ def create_user(request):
 @login_required
 @superuser_required
 def read_users(request):
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT id, first_name, last_name, email, phone, dob, gender, address FROM dashboard_customuser WHERE is_superuser=False ORDER BY id")
-        users = cursor.fetchall()
-    return render(request, 'user/list.html', {'users': users})
+    query = "SELECT id, first_name, last_name, email, phone, dob, gender, address FROM dashboard_customuser WHERE is_superuser=False ORDER BY id"
+    
+    # Define the number of items per page
+    items_per_page = 10
+    
+    object_list, page_number = paginate(query, request, items_per_page)
+    return render(request, 'user/list.html', {'users':object_list,'page':page_number})
 
 
 # Update User
@@ -234,10 +258,12 @@ def create_artist(request):
 # Read Artist
 @login_required
 def read_artists(request):
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT id, name, gender, dob, address, no_of_albums_released, first_release_year FROM dashboard_artist WHERE deleted_at IS NULL ORDER BY id")
-        artists = cursor.fetchall()
-    return render(request, 'artist/list.html', {'artists': artists, 'form':CSVImportForm()})
+    query = "SELECT id, name, gender, dob, address, no_of_albums_released, first_release_year FROM dashboard_artist WHERE deleted_at IS NULL ORDER BY id"
+    # Define the number of items per page
+    items_per_page = 10
+    
+    object_list, page_number = paginate(query, request, items_per_page)
+    return render(request, 'artist/list.html', {'artists': object_list, 'form':CSVImportForm(), 'page':page_number})
 
 
 # Update Artist
@@ -309,7 +335,19 @@ def artist_detail(request, artist_id):
     artist = get_object_or_404(Artist, pk=artist_id)
     songs = read_songs(artist_id)  # Retrieve songs for the artist
     form = SongForm()
-    return render(request, 'artist/detail.html', {'artist': artist, 'songs': songs, 'form': form})
+    items_per_page = 10
+    paginator = Paginator(songs, items_per_page)
+    page_number = request.GET.get('page')
+
+    try:
+        page = paginator.page(page_number)
+    except PageNotAnInteger:
+        page = paginator.page(1)  # Display the first page
+        page_number = 1  # Set the page number to 1
+    except EmptyPage:
+        page = paginator.page(paginator.num_pages)  # Display the last page
+        page_number = paginator.num_pages  # Set the page number to the last page
+    return render(request, 'artist/detail.html', {'artist': artist, 'songs': page.object_list, 'form': form, 'page': page, 'page_number':page_number})
 
 
 # Create Song of a Particular Artist
@@ -431,7 +469,7 @@ def import_artist_and_song_csv(request):
             with connection.cursor() as cursor:
                 csv_file_wrapper = TextIOWrapper(csv_file.file, encoding='utf-8')
                 csv_reader = csv.reader(csv_file_wrapper)
-                
+
                 # Initialize header flags
                 artist_header = False
                 song_header = False
@@ -446,8 +484,6 @@ def import_artist_and_song_csv(request):
                         # Skip the song header
                         song_header = True
                         continue
-
-                    print(len(row))
 
                     if artist_header and len(row) == 7:
                         # Process artist data
@@ -464,11 +500,11 @@ def import_artist_and_song_csv(request):
                         song_id = int(row[0])
                         if not song_exists(song_id):
                             cursor.execute("""
-                                    INSERT INTO dashboard_song (id, title, artist_id, album_name, genre, release_year)
-                                    VALUES (%s, %s, %s, %s, %s, %s)
-                                """, row)
-
-            return HttpResponse('CSV file successfully imported.')
+                                    INSERT INTO dashboard_song (id, title, artist_id, album_name, genre, release_year, created_at, updated_at)
+                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                                """, [row[0], row[1], row[2], row[3], row[4], row[5], current_datetime, current_datetime]
+                                )
+            return redirect('artists') 
     else:
         form = CSVImportForm()
 
