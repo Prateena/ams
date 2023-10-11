@@ -40,7 +40,7 @@
                     <tbody>
                         {% for obj in songs %}
                         <tr>
-                            <td>{{ forloop.counter }}</td>
+                            <td>{{ page.start_index|add:forloop.counter0 }}</td>
                             <td>{{ obj.2 }}</td>
                             <td>{% if obj.3 %}{{ obj.3 }}{% else %}-{% endif %}</td>
                             <td>{{ obj.4 }}</td>

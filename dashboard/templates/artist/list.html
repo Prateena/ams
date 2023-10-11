@@ -42,7 +42,7 @@
                     <tbody>
                         {% for obj in artists %}
                         <tr>
-                            <td>{{ forloop.counter }}</td>
+                            <td>{{ page.start_index|add:forloop.counter0 }}</td>
                             <td>{{ obj.1 }}</td>
                             <td>{{ obj.2 }}</td>
                             <td>{{ obj.3 }}</td>
