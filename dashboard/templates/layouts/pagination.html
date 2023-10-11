@@ -1,5 +1,6 @@
 {% load paginator %}
 
+{% if page.has_previous or page.has_next %}
 <ul class="pagination float-right mt-4">
     {% if page.has_previous %}
     <li class="paginate_button page-item previous" id="example2_previous"><a
@@ -15,3 +16,4 @@
                     data-dt-idx="3" tabindex="0" class="page-link">Next</a></li>
     {% endif %}
 </ul>
+{% endif %}

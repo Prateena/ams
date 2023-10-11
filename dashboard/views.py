@@ -172,7 +172,7 @@ def read_users(request):
     query = "SELECT id, first_name, last_name, email, phone, dob, gender, address FROM dashboard_customuser WHERE is_superuser=False ORDER BY id"
     
     # Define the number of items per page
-    items_per_page = 1
+    items_per_page = 10
     
     object_list, page = paginate(query, request, items_per_page)
     return render(request, 'user/list.html', {'users':object_list,'page':page})
@@ -260,7 +260,7 @@ def create_artist(request):
 def read_artists(request):
     query = "SELECT id, name, gender, dob, address, no_of_albums_released, first_release_year FROM dashboard_artist WHERE deleted_at IS NULL ORDER BY id"
     # Define the number of items per page
-    items_per_page = 1
+    items_per_page = 10
     
     object_list, page_number = paginate(query, request, items_per_page)
     return render(request, 'artist/list.html', {'artists': object_list, 'form':CSVImportForm(), 'page':page_number})
@@ -335,7 +335,7 @@ def artist_detail(request, artist_id):
     artist = get_object_or_404(Artist, pk=artist_id)
     songs = read_songs(artist_id)  # Retrieve songs for the artist
     form = SongForm()
-    items_per_page = 1
+    items_per_page = 10
     paginator = Paginator(songs, items_per_page)
     page_number = request.GET.get('page')
 
