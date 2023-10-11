@@ -61,33 +61,37 @@ def paginate(query, request, items_per_page=10):
 
 def signup_view(request):
     if request.method == 'POST':
-        username = request.POST['email']
-        password = make_password(request.POST['password'])
-        first_name = request.POST['first_name']
-        last_name = request.POST['last_name']
-        email = request.POST['email']
-        phone = request.POST['phone']
-        dob = request.POST['dob']
-        gender = request.POST['gender']
-        address = request.POST['address']
 
+        form = UserForm(request.POST)
+        if form.is_valid():
+            data = form.cleaned_data
+            username = data['email']
+            password = make_password(data['password'])
+            first_name = data['first_name']
+            last_name = data['last_name']
+            email = data['email']
+            phone = data['phone']
+            dob = data['dob']
+            gender = data['gender']
+            address = data['address']
 
-        # Executing a raw SQL query to insert the user into the database
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "INSERT INTO dashboard_customuser (username, password, first_name, last_name, email, is_superuser, is_staff, is_active, date_joined, phone, dob, gender, address) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                [username, password, first_name, last_name,
-                    email, False, False, True, current_datetime, phone, dob, gender, address]
-            )
-            cursor.execute(
-                "INSERT INTO auth_user (username, password, first_name, last_name, email, is_superuser, is_staff, is_active, date_joined) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                [username, password, first_name, last_name,
-                    email, False, False, True, current_datetime]
-            )
-
-        return redirect('login')  # Redirecting to the login page after signup
+            # Executing a raw SQL query to insert the user into the database
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO dashboard_customuser (username, password, first_name, last_name, email, is_superuser, is_staff, is_active, date_joined, phone, dob, gender, address) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    [username, password, first_name, last_name,
+                        email, False, False, True, current_datetime, phone, dob, gender, address]
+                )
+                cursor.execute(
+                    "INSERT INTO auth_user (username, password, first_name, last_name, email, is_superuser, is_staff, is_active, date_joined) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    [username, password, first_name, last_name,
+                        email, False, False, True, current_datetime]
+                )
+        
+            return redirect('login')  # Redirecting to the login page after signup
     else:
-        return render(request, 'accounts/signup.html')
+        form = UserForm()
+    return render(request, 'accounts/signup.html', {'form': form})
 
 
 @login_authentication
@@ -322,7 +326,7 @@ def delete_artist(request, artist_id):
 def read_songs(artist_id):
     with connection.cursor() as cursor:
         cursor.execute(
-            "SELECT artist_id, id, title, album_name, genre, release_year FROM dashboard_song WHERE artist_id = %s ORDER BY id",
+            "SELECT artist_id, id, title, album_name, genre, release_year FROM dashboard_song WHERE artist_id = %s AND deleted_at IS NULL ORDER BY id",
             [artist_id]
         )
         songs = cursor.fetchall()
@@ -332,7 +336,9 @@ def read_songs(artist_id):
 # Artist Detail
 @login_required
 def artist_detail(request, artist_id):
-    artist = get_object_or_404(Artist, pk=artist_id)
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT id, name, gender, dob, address, no_of_albums_released, first_release_year FROM dashboard_artist WHERE id=%s AND deleted_at IS NULL", [artist_id])
+        artist = cursor.fetchone()
     songs = read_songs(artist_id)  # Retrieve songs for the artist
     form = SongForm()
     items_per_page = 10
@@ -353,6 +359,10 @@ def artist_detail(request, artist_id):
 # Create Song of a Particular Artist
 @login_required
 def create_song(request, artist_id):
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT id, name, gender, dob, address, no_of_albums_released, first_release_year FROM dashboard_artist WHERE id=%s", [artist_id])
+        artist = cursor.fetchone()
+        print(artist)
     if request.method == 'POST':
         form = SongForm(request.POST)
         if form.is_valid():
@@ -366,7 +376,7 @@ def create_song(request, artist_id):
             return redirect('detail-artist', artist_id=artist_id)
     else:
         form = SongForm()
-    return render(request, 'song/form.html', {'form': form})
+    return render(request, 'song/form.html', {'form': form, 'artist':artist})
 
 
 # Update Song
@@ -408,12 +418,15 @@ def update_song(request, artist_id, song_id):
 # Delete Song
 @login_required
 def delete_song(request, artist_id, song_id):
+    deleted_at = timezone.now()
+
     with connection.cursor() as cursor:
         cursor.execute(
-            "DELETE FROM dashboard_song WHERE id = %s",
-            [song_id]
+            "UPDATE dashboard_song "
+            "SET deleted_at=%s "
+            "WHERE id=%s",
+            [deleted_at, song_id]
         )
-
     return redirect('detail-artist', artist_id=artist_id)
 
 
@@ -490,9 +503,9 @@ def import_artist_and_song_csv(request):
                         artist_id = int(row[0])
                         if not artist_exists(artist_id):
                             cursor.execute(
-                                    "INSERT INTO dashboard_artist (id, name, dob, gender, first_release_year, no_of_albums_released, address, created_at, updated_at) "
-                                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                                    [row[0], row[1], row[2], row[3], row[4], row[5], row[6], current_datetime, current_datetime]
+                                    "INSERT INTO dashboard_artist (name, dob, gender, first_release_year, no_of_albums_released, address, created_at, updated_at) "
+                                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+                                    [row[1], row[2], row[3], row[4], row[5], row[6], current_datetime, current_datetime]
                                     )
 
                     if song_header and len(row) == 6:
@@ -500,9 +513,9 @@ def import_artist_and_song_csv(request):
                         song_id = int(row[0])
                         if not song_exists(song_id):
                             cursor.execute("""
-                                    INSERT INTO dashboard_song (id, title, artist_id, album_name, genre, release_year, created_at, updated_at)
-                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                                """, [row[0], row[1], row[2], row[3], row[4], row[5], current_datetime, current_datetime]
+                                    INSERT INTO dashboard_song (title, artist_id, album_name, genre, release_year, created_at, updated_at)
+                                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                                """, [row[1], row[2], row[3], row[4], row[5], current_datetime, current_datetime]
                                 )
             return redirect('artists') 
     else:

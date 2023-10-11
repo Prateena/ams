@@ -2,23 +2,23 @@
 
 {% load static %}
 
-{% block title %} Songs by {{ artist }} {% endblock %}
+{% block title %} Songs by {{ artist.1 }} {% endblock %}
 
 {% block breadcrumb %}
 <span>&nbsp; &raquo; &nbsp;</span>
 <a href="/artists/">Artists</a> 
 <span>&nbsp; &raquo; &nbsp;</span>
-<a href="">{{ artist }}</a> 
+<a href="">{{ artist.1 }}</a> 
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid page__container">
-    <h1 style="padding: 27px !important; text-align: center;">Songs by {{ artist }} </h1>
+    <h1 style="padding: 27px !important; text-align: center;">Songs by {{ artist.1 }} </h1>
     <div class="card document-card">
         <div class="row mb-4 mt-4 mr-2">
             <div class="col-md-12">
                 <div style="text-align: right">
-                    <a href="{% url 'create-song' artist.id %}" class="btn btn-outline-primary">
+                    <a href="{% url 'create-song' artist.0 %}" class="btn btn-outline-primary">
                         <i class="fa fa-plus"></i>&nbsp; Add Songs
                     </a>
                 </div>
@@ -47,11 +47,11 @@
                             <td>{% if obj.5 %}{{ obj.5 }}{% endif %}</td>
                             <td>
                                 <div class="btn-group" role="group" style="margin:auto;">
-                                    <a href="{% url 'update-song' artist.id obj.1 %}" class="btn-sm btn btn-info btn-success-space ml-2" data-toggle="tooltip" data-original-title='Modify'>
+                                    <a href="{% url 'update-song' artist.0 obj.1 %}" class="btn-sm btn btn-info btn-success-space ml-2" data-toggle="tooltip" data-original-title='Modify'>
                                         <i class="fa fa-pencil-alt"></i>
                                     </a>
                                     {% if request.user.is_superuser %}
-                                    <a href="{% url 'delete-song' artist.id obj.1 %}" data-toggle="tooltip" class="btn-sm btn btn-danger user-deactivate ml-2" data-original-title='Delete'>
+                                    <a href="" data-toggle="modal" data-target="#deleteModal{{ artist.0 }}{{ obj.1 }}" class="btn-sm btn btn-danger user-deactivate ml-2" data-original-title='Delete'>
                                         <i class="fas fa-ban"></i>
                                     </a>
                                     {% endif %}
@@ -66,4 +66,30 @@
         </div>
     </div>
 </div>
+
+<!-- Delete Modal-->
+{% for obj in songs %}
+<div class="modal fade" id="deleteModal{{ artist.0 }}{{ obj.1 }}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Are you sure you want to delete?</h5>
+                <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                Select "Delete" if you want to delete the song {{ obj.2 }}
+            </div>
+            <div class="modal-footer">
+                <a class="btn btn-danger" href="{% url 'delete-song' artist.0 obj.1 %}">Delete</a>
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
 {% endblock %}

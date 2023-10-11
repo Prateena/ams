@@ -4,6 +4,10 @@
 
 {% block header %}Login{% endblock %}
 
+{% block head %}
+
+{% endblock %}
+
 {% block form %}
     <form class="user" method="post" action="{% url 'login' %}">
         {% csrf_token %}
@@ -14,9 +18,14 @@
         <div class="form-group">
         <label for="password">Password:</label>
         <input class="form-control" type="password" id="password" name="password" required>
+        <span id="togglePassword"><i class="fa fa-eye"></i></span>
         </div>
-        <button type="submit" class="btn btn-primary btn-user btn-block mt-4">Login</button>
+        <button type="submit" class="btn btn-primary btn-user btn-block mt-4" style="font-size: 16px;">Login</button>
         <p class="mt-4 mb-5 pb-lg-2" style="color: #393f81;">Don't have an account? <a href="{% url 'signup' %}"
             style="color: #e02f02;">Register here</a></p>
     </form>
+{% endblock %}
+
+{% block script %}
+
 {% endblock %}
