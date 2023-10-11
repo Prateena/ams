@@ -187,8 +187,11 @@ def read_users(request):
 @superuser_required
 def update_user(request, user_id):
     user = None
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT id, email FROM dashboard_customuser WHERE id=%s", [user_id])
+        custom_user = cursor.fetchone()
     if request.method == 'POST':
-        form = UserUpdateForm(request.POST)
+        form = UserUpdateForm(custom_user, request.POST)
         if form.is_valid():
             data = form.cleaned_data
             with connection.cursor() as cursor:
@@ -214,7 +217,7 @@ def update_user(request, user_id):
             cursor.execute("SELECT first_name, last_name, email, phone, dob, gender, address FROM dashboard_customuser WHERE id=%s", [user_id])
             user = cursor.fetchone()
         if user:
-            form = UserUpdateForm(initial={
+            form = UserUpdateForm(custom_user, initial={
                 'first_name': user[0],
                 'last_name': user[1],
                 'email': user[2],
