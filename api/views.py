@@ -356,19 +356,19 @@ class ImportArtistSongCSVAPIView(AuthMixin, APIView):
                         artist_id = int(row[0])
                         if not artist_exists(artist_id):
                             cursor.execute(
-                                    "INSERT INTO dashboard_artist (name, dob, gender, first_release_year, no_of_albums_released, address, created_at, updated_at) "
-                                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
-                                    [row[1], row[2], row[3], row[4], row[5], row[6], current_datetime, current_datetime]
+                                    "INSERT INTO dashboard_artist (id, name, dob, gender, first_release_year, no_of_albums_released, address, created_at, updated_at) "
+                                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                    [row[0], row[1], row[2], row[3], row[4], row[5], row[6], current_datetime, current_datetime]
                                     )
 
                     if song_header and len(row) == 6:
                         # Process song data
                         song_id = int(row[0])
                         if not song_exists(song_id):
-                            cursor.execute("""
-                                    INSERT INTO dashboard_song (title, artist_id, album_name, genre, release_year, created_at, updated_at)
-                                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                                """, [row[1], row[2], row[3], row[4], row[5], current_datetime, current_datetime]
+                            cursor.execute(
+                                    "INSERT INTO dashboard_song (id, title, artist_id, album_name, genre, release_year, created_at, updated_at) "
+                                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+                                    [row[0], row[1], row[2], row[3], row[4], row[5], current_datetime, current_datetime]
                                 )
 
             return Response({'message':'CSV Imported Successfully'}, status=status.HTTP_200_OK) 

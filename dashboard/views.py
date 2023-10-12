@@ -19,6 +19,15 @@ from .models import *
 # Get the current datetime
 current_datetime = timezone.now()
 
+# Check id exists in database 
+def id_exists(table_name, id_to_check):
+    query = f"SELECT 1 FROM {table_name} WHERE id = %s"
+    
+    with connection.cursor() as cursor:
+        cursor.execute(query, [id_to_check])
+        result = cursor.fetchone()
+    
+    return result is not None
 
 def superuser_required(view_func):
     """
@@ -235,12 +244,18 @@ def update_user(request, user_id):
 @login_required
 @superuser_required
 def delete_user(request, user_id):
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT email FROM dashboard_customuser WHERE id=%s", [user_id])
-        auth_user_email = cursor.fetchone()
-        cursor.execute("DELETE FROM dashboard_customuser WHERE id=%s", [user_id])
-        cursor.execute("DELETE FROM auth_user WHERE email=%s", auth_user_email)
-    return redirect('users')
+    if id_exists('dashboard_customuser',user_id):
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT email FROM dashboard_customuser WHERE id=%s", [user_id])
+            auth_user_email = cursor.fetchone()
+            cursor.execute("DELETE FROM dashboard_customuser WHERE id=%s", [user_id])
+            cursor.execute("DELETE FROM auth_user WHERE email=%s", auth_user_email)
+        return redirect('users')
+    else:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT first_name, last_name, email, phone, dob, gender, address FROM dashboard_customuser")
+            users = cursor.fetchall()
+        return render(request, 'user/list.html', {'message': "User not found", 'users': users})
 
 
 # Create Artist
@@ -365,7 +380,6 @@ def create_song(request, artist_id):
     with connection.cursor() as cursor:
         cursor.execute("SELECT id, name, gender, dob, address, no_of_albums_released, first_release_year FROM dashboard_artist WHERE id=%s", [artist_id])
         artist = cursor.fetchone()
-        print(artist)
     if request.method == 'POST':
         form = SongForm(request.POST)
         if form.is_valid():
@@ -506,9 +520,9 @@ def import_artist_and_song_csv(request):
                         artist_id = int(row[0])
                         if not artist_exists(artist_id):
                             cursor.execute(
-                                    "INSERT INTO dashboard_artist (name, dob, gender, first_release_year, no_of_albums_released, address, created_at, updated_at) "
-                                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
-                                    [row[1], row[2], row[3], row[4], row[5], row[6], current_datetime, current_datetime]
+                                    "INSERT INTO dashboard_artist (id, name, dob, gender, first_release_year, no_of_albums_released, address, created_at, updated_at) "
+                                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                    [row[0], row[1], row[2], row[3], row[4], row[5], row[6], current_datetime, current_datetime]
                                     )
 
                     if song_header and len(row) == 6:
