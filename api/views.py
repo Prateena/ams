@@ -62,6 +62,20 @@ class ArtistUpdateAPIView(generics.UpdateAPIView):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+# Artist Delete API        
+class ArtistDeleteAPIView(generics.DestroyAPIView):
+
+    def destroy(self, request, *args, **kwargs):
+        artist_id = self.kwargs.get('pk')  # Get the artist's primary key from the URL
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE dashboard_artist "
+                "SET deleted_at=%s "
+                "WHERE id=%s",
+                [current_datetime, artist_id]
+            )
+        return Response({"message": "Artist deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
 def dictfetchall(cursor):
     desc = cursor.description
     return [dict(zip([col[0] for col in desc], row)) for row in cursor.fetchall()]
