@@ -74,7 +74,14 @@ class ArtistDeleteAPIView(generics.DestroyAPIView):
                 "WHERE id=%s",
                 [current_datetime, artist_id]
             )
-        return Response({"message": "Artist deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+            # Check if the query was successful
+            if cursor.rowcount > 0:
+                # The query affected at least one row, meaning the artist was deleted
+                return Response({"message": "Artist deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+            else:
+                # The query did not affect any rows, meaning the artist was not found
+                return Response({"message": "Artist not found"}, status=status.HTTP_404_NOT_FOUND)
+
 
 def dictfetchall(cursor):
     desc = cursor.description
