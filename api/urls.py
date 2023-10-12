@@ -9,8 +9,10 @@ urlpatterns = [
     path('artist/delete/<int:pk>/', ArtistDeleteAPIView.as_view(), name='api-delete-artist'),
     path('artist/detail/<int:pk>/', ArtistDetailAPIView.as_view(), name='api-artist-detail'),
 
-    # song create
+    # song create, update and delete
     path('song/create/<int:artist_id>/', SongCreateAPIView.as_view(), name='api-create-song'),
     path('song/update/<int:pk>/', SongUpdateAPIView.as_view(), name='api-update-song'),
+    path('song/delete/<int:pk>/', SongDeleteAPIView.as_view(), name='api-delete-song'),
+
 
 ]
