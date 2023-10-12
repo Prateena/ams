@@ -6,8 +6,7 @@ from rest_framework.views import APIView
 from django.db import connection
 from django.utils import timezone
 
-from dashboard.models import Artist, Song
-from .serializers import ArtistSerializer, SongSerializer
+from .serializers import *
 
 current_datetime = timezone.now()
 
@@ -82,6 +81,34 @@ class ArtistDeleteAPIView(generics.DestroyAPIView):
                 # The query did not affect any rows, meaning the artist was not found
                 return Response({"message": "Artist not found"}, status=status.HTTP_404_NOT_FOUND)
 
+# Artist Detail API
+class ArtistDetailAPIView(generics.RetrieveAPIView):
+
+    def get(self, request, *args, **kwargs):
+        artist_id = self.kwargs.get('pk')  # Get the artist's primary key from the URL
+        with connection.cursor() as cursor:
+            # Fetch artist details
+            cursor.execute(
+                "SELECT id, name, gender, dob, address, no_of_albums_released, first_release_year FROM dashboard_artist WHERE id = %s;",
+                [artist_id]
+            )
+            artist_data = cursor.fetchone()
+
+            if artist_data is None:
+                return Response({"message": "Artist not found"}, status=404)
+
+            # Fetch the list of songs by the artist
+            cursor.execute(
+                "SELECT id, title, album_name, genre, release_year FROM dashboard_song WHERE artist_id = %s;",
+                [artist_id]
+            )
+            songs_data = dictfetchall(cursor)
+
+        data = {
+            "artist": artist_data,
+            "songs": songs_data,
+        }
+        return Response(data)
 
 def dictfetchall(cursor):
     desc = cursor.description
