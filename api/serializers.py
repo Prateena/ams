@@ -66,3 +66,6 @@ class ArtistDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Artist
         fields = ['id','name','gender','dob','address','first_release_year','no_of_albums_released','songs']
+
+class CSVImportSerializer(serializers.Serializer):
+    csv_file = serializers.FileField(required=True)

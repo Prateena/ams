@@ -18,5 +18,11 @@ urlpatterns = [
     path('song/update/<int:pk>/', SongUpdateAPIView.as_view(), name='api-update-song'),
     path('song/delete/<int:pk>/', SongDeleteAPIView.as_view(), name='api-delete-song'),
 
+    # export artists and songs csv
+    path('export-artists-songs-csv/', ExportArtistSongCSVAPIView.as_view(), name='export-artist-and-song-csv'),
+
+    # import artists and songs csv
+    path('import-artists-songs-csv/', ImportArtistSongCSVAPIView.as_view(), name='import-artist-and-song-csv'),
+
 
 ]

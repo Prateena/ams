@@ -1,3 +1,6 @@
+import csv 
+from io import TextIOWrapper
+
 from rest_framework import status
 from rest_framework import generics
 from rest_framework.response import Response
@@ -6,12 +9,11 @@ from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.permissions import IsAuthenticated
 
-
 from django.db import connection
 from django.utils import timezone
-from django.contrib.auth.hashers import make_password, check_password
+from django.http import HttpResponse
+from django.contrib.auth.hashers import make_password
 
-from dashboard.models import CustomUser
 from .serializers import *
 
 current_datetime = timezone.now()
@@ -279,6 +281,99 @@ class SongDeleteAPIView(AuthMixin, generics.DestroyAPIView):
             return Response({"message": "Song deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
         else:
             return Response({"message": "Song not found"}, status=status.HTTP_404_NOT_FOUND)
+
+# Export Artist and Song API 
+class ExportArtistSongCSVAPIView(AuthMixin, APIView):
+
+    def get(self, request, *args, **kwargs):
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="artist_and_their_songs.csv"'
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id, name, dob, gender, first_release_year, no_of_albums_released, address FROM dashboard_artist ORDER BY id")
+            artists = cursor.fetchall()
+
+            cursor.execute("SELECT id, title, artist_id, album_name, genre, release_year  FROM dashboard_song ORDER BY id")
+            songs = cursor.fetchall()
+
+        writer = csv.writer(response)
+        writer.writerow(['Artist ID', 'Artist Name', 'Birthdate', 'Gender', 'First Release Year', 'No of Albums Released', 'Address'])
+
+        for artist in artists:
+            writer.writerow(artist)
+
+        # Write header for song data
+        song_header = ['Song ID', 'Song Title', 'Artist ID', 'Album Name', 'Genre', 'Release Year']
+        writer.writerow(song_header)
+
+        # Write song data
+        for song in songs:
+            writer.writerow(song)
+        return response
+    
+def artist_exists(artist_id):
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT id FROM dashboard_artist WHERE id = %s", [artist_id])
+        row = cursor.fetchone()
+    return row is not None
+
+def song_exists(song_id):
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT id FROM dashboard_song WHERE id = %s", [song_id])
+        row = cursor.fetchone()
+    return row is not None
+
+# Import Artist and Song API 
+class ImportArtistSongCSVAPIView(AuthMixin, APIView):
+    serializer_class = CSVImportSerializer
+
+    def post(self, request, format=None):
+        serializer = self.serializer_class(data=request.data,
+                                           context={'request': request})
+        if serializer.is_valid():
+            csv_file = request.data['csv_file']
+            with connection.cursor() as cursor:
+                csv_file_wrapper = TextIOWrapper(csv_file.file, encoding='utf-8')
+                csv_reader = csv.reader(csv_file_wrapper)
+
+                # Initialize header flags
+                artist_header = False
+                song_header = False
+
+                for row in csv_reader:
+                    if not artist_header and row == ['Artist ID', 'Artist Name', 'Birthdate', 'Gender', 'First Release Year', 'No of Albums Released', 'Address']:
+                        # Skip the artist header
+                        artist_header = True
+                        continue
+
+                    if not song_header and row == ['Song ID', 'Song Title', 'Artist ID', 'Album Name', 'Genre', 'Release Year']:
+                        # Skip the song header
+                        song_header = True
+                        continue
+
+                    if artist_header and len(row) == 7:
+                        # Process artist data
+                        artist_id = int(row[0])
+                        if not artist_exists(artist_id):
+                            cursor.execute(
+                                    "INSERT INTO dashboard_artist (name, dob, gender, first_release_year, no_of_albums_released, address, created_at, updated_at) "
+                                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+                                    [row[1], row[2], row[3], row[4], row[5], row[6], current_datetime, current_datetime]
+                                    )
+
+                    if song_header and len(row) == 6:
+                        # Process song data
+                        song_id = int(row[0])
+                        if not song_exists(song_id):
+                            cursor.execute("""
+                                    INSERT INTO dashboard_song (title, artist_id, album_name, genre, release_year, created_at, updated_at)
+                                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                                """, [row[1], row[2], row[3], row[4], row[5], current_datetime, current_datetime]
+                                )
+
+            return Response({'message':'CSV Imported Successfully'}, status=status.HTTP_200_OK) 
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
 
 def dictfetchall(cursor):
     desc = cursor.description
