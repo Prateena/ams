@@ -22,7 +22,8 @@ from django.conf import settings
 
 urlpatterns = [
     path('ams-admin/', admin.site.urls),
-    path('', include('dashboard.urls'))
+    path('', include('dashboard.urls')),
+    path('api/', include('api.urls')),
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
