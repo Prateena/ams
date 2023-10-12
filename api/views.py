@@ -2,17 +2,26 @@ from rest_framework import status
 from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.permissions import IsAuthenticated
+
 
 from django.db import connection
 from django.utils import timezone
+from django.contrib.auth.hashers import make_password, check_password
 
+from dashboard.models import CustomUser
 from .serializers import *
 
 current_datetime = timezone.now()
 
+class AuthMixin:
+    permission_classes = [IsAuthenticated]
+
 # Check id exists in database 
 def id_exists(table_name, id_to_check):
-    query = f"SELECT 1 FROM {table_name} WHERE id = %s"
+    query = f"SELECT 1 FROM {table_name} WHERE id = %s AND deleted_at IS NULL"
     
     with connection.cursor() as cursor:
         cursor.execute(query, [id_to_check])
@@ -20,8 +29,76 @@ def id_exists(table_name, id_to_check):
     
     return result is not None
 
+# User Login API
+class LoginView(ObtainAuthToken):
+    serializer_class = LoginSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data,
+                                           context={'request': request})
+
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+
+        token, _ = Token.objects.get_or_create(user=user)
+
+        return Response({
+                'token': token.key,
+                'username': user.username,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'email':user.email,      
+        }, 200)
+    
+# User Register API  
+class RegisterAPIView(ObtainAuthToken):
+    serializer_class = RegisterSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            data = serializer.data
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO dashboard_customuser (username, first_name, last_name, email, password, phone, dob, gender, address, is_superuser, is_staff, is_active, date_joined) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    [data['email'], data['first_name'], data['last_name'], data['email'], make_password(data['password']), data['phone'], data['dob'], data['gender'], data['address'], False, False, True, current_datetime]
+                )
+                cursor.execute("SELECT LASTVAL();")
+                user_id = cursor.fetchone()[0]
+                cursor.execute("SELECT id, phone, dob, gender, address FROM dashboard_customuser WHERE id = %s", [user_id])
+                user = cursor.fetchall()[0]
+
+                cursor.execute(
+                    "INSERT INTO auth_user (username, first_name, last_name, email, password, is_superuser, is_staff, is_active, date_joined) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    [data['email'], data['first_name'], data['last_name'], data['email'], make_password(data['password']), False, False, True, current_datetime]
+                )
+                cursor.execute("SELECT LASTVAL();")
+                auth_user_id = cursor.fetchone()[0]
+                cursor.execute("SELECT id, username, first_name, last_name, email, password, is_superuser, is_staff, is_active, date_joined FROM auth_user WHERE id = %s", [auth_user_id])
+                auth_user = cursor.fetchall()[0]
+
+            token, _ = Token.objects.get_or_create(user_id=auth_user[0])
+
+            return Response({
+                'token': token.key,
+                'id': user[0],
+                'username': auth_user[1],
+                'email': auth_user[4],
+                'first_name': auth_user[2],
+                'last_name': auth_user[3],
+                'phone': user[1],
+                'dob': user[2],
+                'gender': user[3],
+                'address': user[4],
+            })
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 # Artist List API
-class ArtistList(APIView):
+class ArtistList(AuthMixin, APIView):
     def get(self, request):
         with connection.cursor() as cursor:
             cursor.execute("SELECT id, name, gender, dob, address, no_of_albums_released, first_release_year FROM dashboard_artist WHERE deleted_at IS NULL ORDER BY id")
@@ -29,7 +106,7 @@ class ArtistList(APIView):
         return Response(artists)
 
 # Artist Create API
-class ArtistCreateAPIView(generics.CreateAPIView):
+class ArtistCreateAPIView(AuthMixin, generics.CreateAPIView):
     
     def post(self, request):
         data = request.data
@@ -51,7 +128,7 @@ class ArtistCreateAPIView(generics.CreateAPIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # Artist Update API
-class ArtistUpdateAPIView(generics.UpdateAPIView):
+class ArtistUpdateAPIView(AuthMixin, generics.UpdateAPIView):
 
     def update(self, request, *args, **kwargs):
         data = request.data
@@ -65,7 +142,7 @@ class ArtistUpdateAPIView(generics.UpdateAPIView):
                         "UPDATE dashboard_artist "
                         "SET name=%s, gender=%s, dob=%s, address=%s, no_of_albums_released=%s, first_release_year=%s, updated_at=%s "
                         "WHERE id=%s",
-                        [artist_data['name'], artist_data['gender'], artist_data['dob'], artist_data['address'], artist_data['no_of_albums_released'], artist_data['first_release_year'], current_datetime, artist_id]
+                        [artist_data['name'], data['gender'], artist_data['dob'], artist_data['address'], artist_data['no_of_albums_released'], artist_data['first_release_year'], current_datetime, artist_id]
                     )
                 return Response({"message": "Artist updated successfully"}, status=status.HTTP_200_OK)
             else:
@@ -76,7 +153,7 @@ class ArtistUpdateAPIView(generics.UpdateAPIView):
 
 
 # Artist Delete API        
-class ArtistDeleteAPIView(generics.DestroyAPIView):
+class ArtistDeleteAPIView(AuthMixin, generics.DestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         artist_id = self.kwargs.get('pk')  # Get the artist's primary key from the URL
@@ -93,37 +170,41 @@ class ArtistDeleteAPIView(generics.DestroyAPIView):
             return Response({"message": "Artist not found"}, status=status.HTTP_404_NOT_FOUND)
 
 # Artist Detail API
-class ArtistDetailAPIView(generics.RetrieveAPIView):
+class ArtistDetailAPIView(AuthMixin, generics.RetrieveAPIView):
 
     def get(self, request, *args, **kwargs):
         artist_id = self.kwargs.get('pk')  # Get the artist's primary key from the URL
-        with connection.cursor() as cursor:
-            # Fetch artist details
-            cursor.execute(
-                "SELECT id, name, gender, dob, address, no_of_albums_released, first_release_year FROM dashboard_artist WHERE id = %s AND deleted_at IS NULL;",
-                [artist_id]
-            )
-            artist_data = dictfetchall(cursor)
+        if id_exists('dashboard_artist', artist_id):
 
-            if artist_data is None:
-                return Response({"message": "Artist not found"}, status=404)
+            with connection.cursor() as cursor:
+                # Fetch artist details
+                cursor.execute(
+                    "SELECT id, name, gender, dob, address, no_of_albums_released, first_release_year FROM dashboard_artist WHERE id = %s AND deleted_at IS NULL;",
+                    [artist_id]
+                )
+                artist_data = dictfetchall(cursor)
 
-            # Fetch the list of songs by the artist
-            cursor.execute(
-                "SELECT id, title, album_name, genre, release_year FROM dashboard_song WHERE artist_id = %s AND deleted_at IS NULL;",
-                [artist_id]
-            )
-            songs_data = dictfetchall(cursor)
+                if artist_data is None:
+                    return Response({"message": "Artist not found"}, status=404)
 
-        data = {
-            "artist": artist_data,
-            "songs": songs_data,
-        }
-        return Response(data)
+                # Fetch the list of songs by the artist
+                cursor.execute(
+                    "SELECT id, title, album_name, genre, release_year FROM dashboard_song WHERE artist_id = %s AND deleted_at IS NULL;",
+                    [artist_id]
+                )
+                songs_data = dictfetchall(cursor)
+
+            data = {
+                "artist": artist_data,
+                "songs": songs_data,
+            }
+            return Response(data)
+        else:
+            return Response({"message": "Artist not found"}, status=status.HTTP_404_NOT_FOUND)
     
 
 # Song Create API
-class SongCreateAPIView(generics.CreateAPIView):
+class SongCreateAPIView(AuthMixin, generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         artist_id = self.kwargs.get('artist_id')  # Get the artist's ID from the URL
@@ -157,7 +238,7 @@ class SongCreateAPIView(generics.CreateAPIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # Song Update API
-class SongUpdateAPIView(generics.UpdateAPIView):
+class SongUpdateAPIView(AuthMixin, generics.UpdateAPIView):
 
     def update(self, request, *args, **kwargs):
 
@@ -183,7 +264,7 @@ class SongUpdateAPIView(generics.UpdateAPIView):
             return Response({"message": "Song not found"}, status=status.HTTP_404_NOT_FOUND)
 
 # Song Delete API        
-class SongDeleteAPIView(generics.DestroyAPIView):
+class SongDeleteAPIView(AuthMixin, generics.DestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         song_id = self.kwargs.get('pk')  # Get the artist's primary key from the URL

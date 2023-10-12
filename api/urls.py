@@ -2,6 +2,10 @@ from django.urls import path
 from .views import *
 
 urlpatterns = [
+    # user login and register 
+    path('login/', LoginView.as_view()),
+    path('register/', RegisterAPIView.as_view()),
+
     # artist crud
     path('artists/', ArtistList.as_view(), name='api-artist-list'),
     path('artist/create/', ArtistCreateAPIView.as_view(), name='api-create-artist'),
