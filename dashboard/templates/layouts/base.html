@@ -62,7 +62,7 @@
       <!-- Sidebar - Brand -->
       <a class="sidebar-brand d-flex align-items-center justify-content-center mt-4 mb-4" href="{% url 'dashboard' %}">
         <div class="sidebar-brand-icon">
-          <span>Artist Management System</span>
+          <span id="mySpan">Artist Management System</span>
         </div>
       </a>
 
@@ -232,6 +232,27 @@
   <script>
     $(document).ready(function () {
       $('#myTable').DataTable();
+    });
+  </script>
+  <script>
+    // Get the element by its ID
+    const toggleButton = document.getElementById("sidebarToggle");
+    const childSpan = document.getElementById("mySpan");
+
+    // Create a flag to track the current state
+    let isToggled = false;
+
+    // Add a click event listener to toggle the text
+    toggleButton.addEventListener("click", () => {
+        // Toggle the flag
+        isToggled = !isToggled;
+
+        // Change the text based on the flag
+        if (isToggled) {
+            childSpan.textContent = "AMS";
+        } else {
+            childSpan.textContent = "Artist Management System";
+        }
     });
   </script>
   {% block script %} {% endblock %}
