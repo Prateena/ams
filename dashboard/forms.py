@@ -33,6 +33,7 @@ class UserForm(FormControlMixin, forms.ModelForm):
         self.fields['first_name'].required = True
         self.fields['last_name'].required = True
         self.fields['email'].required = True
+        self.fields['dob'].label = "Date of Birth"
         self.fields['password'].widget = forms.PasswordInput(attrs={'class': 'form-control'})
 
     def clean_email(self):
@@ -67,6 +68,7 @@ class UserUpdateForm(FormControlMixin, forms.ModelForm):
         self.fields['first_name'].required = True
         self.fields['last_name'].required = True
         self.fields['email'].required = True
+        self.fields['dob'].label = "Date of Birth"
 
     def clean_email(self):
         email = self.cleaned_data['email']
@@ -85,6 +87,10 @@ class ArtistForm(FormControlMixin, forms.ModelForm):
     class Meta:
         model = Artist
         fields = ['name', 'gender', 'dob', 'address', 'no_of_albums_released', 'first_release_year']
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['dob'].label = "Date of Birth"
 
 
 class SongForm(FormControlMixin, forms.ModelForm):
