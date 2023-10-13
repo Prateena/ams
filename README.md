@@ -48,15 +48,21 @@ on Windows,
 ```
  > Note: Make sure you have required values in .env file before development.
 
-
-## Running project
-### Running migrations
-```
-    $ python manage.py makemigrations 
-    $ python manage.py migrate
-```
+## Running project with docker
+### Prerequisites
+---------------------
+- docker
+- docker-compose
 
 ### Running project
 ```
-    $ python manage.py runserver
+    $ docker-compose up
+```
+
+### Stopping project
+```
+    $ docker-compose down
+```
+
+&nbsp;
 ```
