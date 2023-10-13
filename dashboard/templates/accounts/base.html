@@ -44,6 +44,12 @@
             transform: translateY(-50%);
             cursor: pointer;
         }
+        
+        {% if error_message %}
+        #togglePassword {
+            top: 56%!important;
+        }
+        {% endif %}
 
         #togglePassword i {
             color: #555;

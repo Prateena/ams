@@ -4,6 +4,7 @@ from io import TextIOWrapper
 from django.urls import reverse
 from django.db import connection
 from django.utils import timezone
+from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.shortcuts import render, redirect
@@ -100,7 +101,7 @@ def signup_view(request):
             return redirect('login')  # Redirecting to the login page after signup
     else:
         form = UserForm()
-    return render(request, 'accounts/signup.html', {'form': form})
+    return render(request, 'accounts/signup.html', {'form': form, 'message':'Account Created Successfully! Please Login using your credentials'})
 
 
 @login_authentication
@@ -122,7 +123,7 @@ def login_view(request):
             # Verifying the password
             passwords_match = check_password(password, hashed_password)
             if passwords_match:
-                user = User.objects.get(id=user_id)
+                user = User(id=user_id, username=username, password=hashed_password)
                 login(request, user)  # Logging in the user
                 return redirect('dashboard')
 

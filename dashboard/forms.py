@@ -1,7 +1,6 @@
 import re
 
 from django import forms
-from django.core.exceptions import ValidationError
 from django.db import connection
 
 from .models import Artist, CustomUser, Song

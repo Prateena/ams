@@ -9,26 +9,26 @@
 {% block header %}Sign up{% endblock %}
 
 {% block form %}
-    <form method="post" action="{% url 'signup' %}">
-        {% csrf_token %}
-        {% for field in form %}
-        <div class="form-group" >
-            <label>{{ field.label }}{% if field.field.required %}* {% endif %}</label>
-            {{ field }}
-            <span style="color:red;">{{ field.errors|striptags|safe }}</span>
-        </div>
-        {% endfor %}   
-        <button type="submit" class="btn btn-primary btn-user btn-block mt-4">Sign Up</button>
+<form method="post" action="{% url 'signup' %}">
+    {% csrf_token %}
+    {% for field in form %}
+    <div class="form-group">
+        <label>{{ field.label }}{% if field.field.required %}* {% endif %}</label>
+        {{ field }}
+        <span style="color:red;">{{ field.errors|striptags|safe }}</span>
+    </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-primary btn-user btn-block mt-4">Sign Up</button>
 
-    </form>
-    <p class="mt-4 mb-5 pb-lg-2" style="color: #393f81;">Already have an account? <a href="{% url 'login' %}"
+</form>
+<p class="mt-4 mb-5 pb-lg-2" style="color: #393f81;">Already have an account? <a href="{% url 'login' %}"
         style="color: #e02f02;">Log In</a></p>
 {% endblock %}
 {% block script %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 <script>
-    $(function() {
+    $(function () {
         $('#id_dob').datepicker({
             changeMonth: true,
             changeYear: true,
