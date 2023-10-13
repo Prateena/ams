@@ -6,8 +6,8 @@ from django.db import connection
 from django.utils import timezone
 from django.contrib.auth import login
 from django.contrib.auth.models import User
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponseForbidden, HttpResponse
+from django.shortcuts import render, redirect
+from django.http import HttpResponseForbidden, HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import make_password, check_password
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -324,7 +324,6 @@ def update_artist(request, artist_id):
 
 # Delete Artist
 @login_required
-@superuser_required
 def delete_artist(request, artist_id):
     # Get the current timestamp
     deleted_at = timezone.now()
@@ -495,6 +494,8 @@ def import_artist_and_song_csv(request):
         form = CSVImportForm(request.POST, request.FILES)
         if form.is_valid():
             csv_file = request.FILES['csv_file']
+            if not csv_file.name.endswith('.csv'):
+                return JsonResponse({'error': 'Please upload a CSV file with the .csv extension.'}, status=400)
 
             with connection.cursor() as cursor:
                 csv_file_wrapper = TextIOWrapper(csv_file.file, encoding='utf-8')
@@ -504,36 +505,48 @@ def import_artist_and_song_csv(request):
                 artist_header = False
                 song_header = False
 
+                header_1 = ['Artist ID', 'Artist Name', 'Birthdate', 'Gender', 'First Release Year', 'No of Albums Released', 'Address']
+                header_2 = ['Song ID', 'Song Title', 'Artist ID', 'Album Name', 'Genre', 'Release Year']
+                valid_headers = False
+
+                first_row = next(csv_reader)
+
+                if first_row == header_1 or first_row == header_2:
+                    valid_headers = True
+
                 for row in csv_reader:
-                    if not artist_header and row == ['Artist ID', 'Artist Name', 'Birthdate', 'Gender', 'First Release Year', 'No of Albums Released', 'Address']:
-                        # Skip the artist header
-                        artist_header = True
-                        continue
+                    if valid_headers:
+                        if not artist_header and first_row == header_1:
+                            # Skip the artist header
+                            artist_header = True
+                            continue
 
-                    if not song_header and row == ['Song ID', 'Song Title', 'Artist ID', 'Album Name', 'Genre', 'Release Year']:
-                        # Skip the song header
-                        song_header = True
-                        continue
+                        if not song_header and row == header_2:
+                            # Skip the song header
+                            song_header = True
+                            continue
 
-                    if artist_header and len(row) == 7:
-                        # Process artist data
-                        artist_id = int(row[0])
-                        if not artist_exists(artist_id):
-                            cursor.execute(
-                                    "INSERT INTO dashboard_artist (id, name, dob, gender, first_release_year, no_of_albums_released, address, created_at, updated_at) "
-                                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                                    [row[0], row[1], row[2], row[3], row[4], row[5], row[6], current_datetime, current_datetime]
+                        if artist_header and len(row) == 7:
+                            # Process artist data
+                            artist_id = int(row[0])
+                            if not artist_exists(artist_id):
+                                cursor.execute(
+                                        "INSERT INTO dashboard_artist (id, name, dob, gender, first_release_year, no_of_albums_released, address, created_at, updated_at) "
+                                        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                        [row[0], row[1], row[2], row[3], row[4], row[5], row[6], current_datetime, current_datetime]
+                                        )
+
+                        if song_header and len(row) == 6:
+                            # Process song data
+                            song_id = int(row[0])
+                            if not song_exists(song_id):
+                                cursor.execute("""
+                                        INSERT INTO dashboard_song (title, artist_id, album_name, genre, release_year, created_at, updated_at)
+                                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                                    """, [row[1], row[2], row[3], row[4], row[5], current_datetime, current_datetime]
                                     )
-
-                    if song_header and len(row) == 6:
-                        # Process song data
-                        song_id = int(row[0])
-                        if not song_exists(song_id):
-                            cursor.execute("""
-                                    INSERT INTO dashboard_song (title, artist_id, album_name, genre, release_year, created_at, updated_at)
-                                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                                """, [row[1], row[2], row[3], row[4], row[5], current_datetime, current_datetime]
-                                )
+                    else:
+                        return JsonResponse({'error': 'Invalid CSV format. Missing required headers.'}, status=400)
             return redirect('artists') 
     else:
         form = CSVImportForm()

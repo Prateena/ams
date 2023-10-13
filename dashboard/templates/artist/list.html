@@ -61,12 +61,10 @@
                                         data-original-title='Modify'>
                                         <i class="fa fa-pencil-alt"></i>
                                     </a>
-                                    {% if request.user.is_superuser %}
                                     <a href="#" data-toggle="modal" data-target="#deleteModal{{ obj.0 }}"
                                         class="btn-sm btn btn-danger user-deactivate ml-2" data-original-title='Delete'>
                                         <i class="fas fa-ban"></i>
                                     </a>
-                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -91,7 +89,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form action="{% url 'import_artist_and_song_csv' %}" method="post" enctype="multipart/form-data">
+                <form action="{% url 'import_artist_and_song_csv' %}" method="post" enctype="multipart/form-data" id="csv-upload-form">
                     {% csrf_token %}
                     {{ form }}
                     <button type="submit" class="btn btn-primary text-center">Submit</button>
@@ -139,5 +137,43 @@
             $('#importModal').modal('show');
         });
     });
+
+    $(document).ready(function() {
+        $("#csv-upload-form").submit(function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+
+            // Perform client-side validation
+            const fileInput = document.querySelector('input[type="file"]');
+            if (!fileInput.files[0]) {
+                displayError("Please select a CSV file.");
+                return;
+            }
+
+            // Use AJAX to submit the form data to the server
+            $.ajax({
+                url: "/import-artists-songs-csv/",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    // Handle a successful upload
+                    alert("CSV file uploaded and processed successfully.");
+                    window.location.reload();
+                },
+                error: function(xhr, status, error) {
+                    // Display the error message from the server
+                    const errorMessage = xhr.responseJSON.error;
+                    displayError(errorMessage);
+                }
+            });
+        });
+    });
+
+    function displayError(message) {
+        // Display the error message in the page
+        alert(message);
+    }
 </script>
 {% endblock %}

@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import permissions
 
 from django.db import connection
 from django.utils import timezone
@@ -20,6 +21,14 @@ current_datetime = timezone.now()
 
 class AuthMixin:
     permission_classes = [IsAuthenticated]
+
+class IsSuperuser(permissions.BasePermission):
+    def has_permission(self, request, view):
+        # Check if the user is a superuser
+        return request.user and request.user.is_superuser
+    
+class SuperuserMixin:
+    permission_classes = [IsSuperuser]
 
 # Check id exists in database 
 def id_exists(table_name, id_to_check):
@@ -332,6 +341,8 @@ class ImportArtistSongCSVAPIView(AuthMixin, APIView):
                                            context={'request': request})
         if serializer.is_valid():
             csv_file = request.data['csv_file']
+            if not csv_file.name.endswith('.csv'):
+                return Response({'error': 'Please upload a CSV file with the .csv extension.'}, status=status.HTTP_400_BAD_REQUEST)
             with connection.cursor() as cursor:
                 csv_file_wrapper = TextIOWrapper(csv_file.file, encoding='utf-8')
                 csv_reader = csv.reader(csv_file_wrapper)
@@ -340,38 +351,50 @@ class ImportArtistSongCSVAPIView(AuthMixin, APIView):
                 artist_header = False
                 song_header = False
 
+                header_1 = ['Artist ID', 'Artist Name', 'Birthdate', 'Gender', 'First Release Year', 'No of Albums Released', 'Address']
+                header_2 = ['Song ID', 'Song Title', 'Artist ID', 'Album Name', 'Genre', 'Release Year']
+                valid_headers = False
+
+                first_row = next(csv_reader)
+
+                if first_row == header_1 or first_row == header_2:
+                    valid_headers = True
+
                 for row in csv_reader:
-                    if not artist_header and row == ['Artist ID', 'Artist Name', 'Birthdate', 'Gender', 'First Release Year', 'No of Albums Released', 'Address']:
-                        # Skip the artist header
-                        artist_header = True
-                        continue
+                    if valid_headers:
+                        if not artist_header and row == header_1:
+                            # Skip the artist header
+                            artist_header = True
+                            continue
 
-                    if not song_header and row == ['Song ID', 'Song Title', 'Artist ID', 'Album Name', 'Genre', 'Release Year']:
-                        # Skip the song header
-                        song_header = True
-                        continue
+                        if not song_header and row == header_2:
+                            # Skip the song header
+                            song_header = True
+                            continue
 
-                    if artist_header and len(row) == 7:
-                        # Process artist data
-                        artist_id = int(row[0])
-                        if not artist_exists(artist_id):
-                            cursor.execute(
-                                    "INSERT INTO dashboard_artist (id, name, dob, gender, first_release_year, no_of_albums_released, address, created_at, updated_at) "
-                                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                                    [row[0], row[1], row[2], row[3], row[4], row[5], row[6], current_datetime, current_datetime]
+                        if artist_header and len(row) == 7:
+                            # Process artist data
+                            artist_id = int(row[0])
+                            if not artist_exists(artist_id):
+                                cursor.execute(
+                                        "INSERT INTO dashboard_artist (id, name, dob, gender, first_release_year, no_of_albums_released, address, created_at, updated_at) "
+                                        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                        [row[0], row[1], row[2], row[3], row[4], row[5], row[6], current_datetime, current_datetime]
+                                        )
+
+                        if song_header and len(row) == 6:
+                            # Process song data
+                            song_id = int(row[0])
+                            if not song_exists(song_id):
+                                cursor.execute(
+                                        "INSERT INTO dashboard_song (id, title, artist_id, album_name, genre, release_year, created_at, updated_at) "
+                                        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+                                        [row[0], row[1], row[2], row[3], row[4], row[5], current_datetime, current_datetime]
                                     )
 
-                    if song_header and len(row) == 6:
-                        # Process song data
-                        song_id = int(row[0])
-                        if not song_exists(song_id):
-                            cursor.execute(
-                                    "INSERT INTO dashboard_song (id, title, artist_id, album_name, genre, release_year, created_at, updated_at) "
-                                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
-                                    [row[0], row[1], row[2], row[3], row[4], row[5], current_datetime, current_datetime]
-                                )
-
-            return Response({'message':'CSV Imported Successfully'}, status=status.HTTP_200_OK) 
+                        return Response({'message':'CSV Imported Successfully'}, status=status.HTTP_200_OK) 
+                    else:    
+                        return Response({'error':'Invalid CSV format. Missing required headers.'}, status=status.HTTP_400_BAD_REQUEST)        
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
 
