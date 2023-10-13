@@ -547,6 +547,8 @@ def import_artist_and_song_csv(request):
                                     )
                     else:
                         return JsonResponse({'error': 'Invalid CSV format. Missing required headers.'}, status=400)
+                cursor.execute("SELECT setval('dashboard_artist_id_seq', (SELECT id FROM dashboard_artist ORDER BY id DESC LIMIT 1))")
+                cursor.execute("SELECT setval('dashboard_song_id_seq', (SELECT id FROM dashboard_song ORDER BY id DESC LIMIT 1))")
             return redirect('artists') 
     else:
         form = CSVImportForm()

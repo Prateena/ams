@@ -459,7 +459,7 @@ class ImportArtistSongCSVAPIView(AuthMixin, APIView):
 
                 for row in csv_reader:
                     if valid_headers:
-                        if not artist_header and row == header_1:
+                        if not artist_header and first_row == header_1:
                             # Skip the artist header
                             artist_header = True
                             continue
@@ -482,16 +482,18 @@ class ImportArtistSongCSVAPIView(AuthMixin, APIView):
                         if song_header and len(row) == 6:
                             # Process song data
                             song_id = int(row[0])
-                            if not song_exists(song_id):
+                            if not song_exists(song_id) and artist_exists(row[2]):
                                 cursor.execute(
                                         "INSERT INTO dashboard_song (id, title, artist_id, album_name, genre, release_year, created_at, updated_at) "
                                         "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
                                         [row[0], row[1], row[2], row[3], row[4], row[5], current_datetime, current_datetime]
                                     )
-
-                        return Response({'message':'CSV Imported Successfully'}, status=status.HTTP_200_OK) 
+                                
                     else:    
-                        return Response({'error':'Invalid CSV format. Missing required headers.'}, status=status.HTTP_400_BAD_REQUEST)        
+                        return Response({'error':'Invalid CSV format. Missing required headers.'}, status=status.HTTP_400_BAD_REQUEST) 
+                cursor.execute("SELECT setval('dashboard_artist_id_seq', (SELECT id FROM dashboard_artist ORDER BY id DESC LIMIT 1))")
+                cursor.execute("SELECT setval('dashboard_song_id_seq', (SELECT id FROM dashboard_song ORDER BY id DESC LIMIT 1))")
+            return Response({'message':'CSV Imported Successfully'}, status=status.HTTP_200_OK)            
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
 
