@@ -40,6 +40,15 @@ def id_exists(table_name, id_to_check):
     
     return result is not None
 
+def user_id_exists(table_name, id_to_check):
+    query = f"SELECT 1 FROM {table_name} WHERE id = %s"
+    
+    with connection.cursor() as cursor:
+        cursor.execute(query, [id_to_check])
+        result = cursor.fetchone()
+    
+    return result is not None
+
 # User Login API
 class LoginView(ObtainAuthToken):
     serializer_class = LoginSerializer
@@ -107,7 +116,95 @@ class RegisterAPIView(ObtainAuthToken):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+# User List API
+class UserList(SuperuserMixin, APIView):
+    def get(self, request):
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id, username, first_name, last_name, email, phone, dob, gender, address FROM dashboard_customuser ORDER BY id")
+            users = dictfetchall(cursor)
+        return Response(users)
 
+# User Create API
+class UserCreateAPIView(SuperuserMixin, generics.CreateAPIView):
+    
+    def post(self, request):
+        data = request.data
+        serializer = RegisterSerializer(data=data)
+
+        if serializer.is_valid():
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO dashboard_customuser (username, first_name, last_name, email, password, phone, dob, gender, address, is_superuser, is_staff, is_active, date_joined) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    [data['email'], data['first_name'], data['last_name'], data['email'], make_password(data['password']), data['phone'], data['dob'], data['gender'], data['address'], False, False, True, current_datetime]
+                )
+                cursor.execute("SELECT LASTVAL();")
+                custom_user_id  = cursor.fetchone()[0]
+
+                cursor.execute(
+                    "INSERT INTO auth_user (username, first_name, last_name, email, password, is_superuser, is_staff, is_active, date_joined) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    [data['email'], data['first_name'], data['last_name'], data['email'], make_password(data['password']), False, False, True, current_datetime]
+                )
+
+                cursor.execute("SELECT id, username, first_name, last_name, email, phone, dob, gender, address FROM dashboard_customuser WHERE id = %s", [custom_user_id])
+                user = dictfetchall(cursor)
+            return Response({'user': user[0], 'message':'User Created Successfully'}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# User Update API
+class UserUpdateAPIView(SuperuserMixin, generics.UpdateAPIView):
+
+    def update(self, request, *args, **kwargs):
+        data = request.data
+        serializer = UserSerializer(data=data)
+        user_id = self.kwargs.get('pk')  # Get the user's primary key from the URL
+        if user_id_exists('dashboard_customuser', user_id):
+            if serializer.is_valid():
+                user_data = serializer.validated_data
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT email FROM dashboard_customuser WHERE id=%s", [user_id])
+                    auth_user_email = cursor.fetchone()
+                    cursor.execute(
+                        "UPDATE auth_user "
+                        "SET username=%s, first_name=%s, last_name=%s, email=%s"
+                        "WHERE email=%s",
+                        [user_data['email'], user_data['first_name'], user_data['last_name'], user_data['email'], auth_user_email]
+                    )
+                    cursor.execute(
+                        "UPDATE dashboard_customuser "
+                        "SET username=%s, first_name=%s, last_name=%s, email=%s, phone=%s, dob=%s, gender=%s, address=%s "
+                        "WHERE id=%s",
+                        [user_data['email'], user_data['first_name'], user_data['last_name'], user_data['email'], user_data['phone'], user_data['dob'], user_data['gender'], user_data['address'], user_id]
+                    )
+                return Response({"message": "User updated successfully"}, status=status.HTTP_200_OK)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+# User Delete API        
+class UserDeleteAPIView(SuperuserMixin, generics.DestroyAPIView):
+
+    def destroy(self, request, *args, **kwargs):
+        user_id = self.kwargs.get('pk')  # Get the artist's primary key from the URL
+        if user_id_exists('dashboard_customuser',user_id):
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT email FROM dashboard_customuser WHERE id=%s", [user_id])
+                auth_user_email = cursor.fetchone()
+
+                cursor.execute("SELECT id FROM dashboard_customuser WHERE id=%s", [user_id])
+                auth_user_id = cursor.fetchone()
+
+                cursor.execute("DELETE FROM authtoken_token WHERE user_id=%s", auth_user_id)
+                cursor.execute("DELETE FROM auth_user WHERE email=%s", auth_user_email)
+                cursor.execute("DELETE FROM dashboard_customuser WHERE id=%s", [user_id])
+
+            return Response({"message": "User deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response({"message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        
 # Artist List API
 class ArtistList(AuthMixin, APIView):
     def get(self, request):

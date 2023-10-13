@@ -6,6 +6,12 @@ urlpatterns = [
     path('login/', LoginView.as_view()),
     path('register/', RegisterAPIView.as_view()),
 
+    # user crud
+    path('users/', UserList.as_view(), name='api-user-list'),
+    path('user/create/', UserCreateAPIView.as_view(), name='api-create-user'), 
+    path('user/update/<int:pk>/', UserUpdateAPIView.as_view(), name='api-update-user'),
+    path('user/delete/<int:pk>/', UserDeleteAPIView.as_view(), name='api-delete-user'), 
+
     # artist crud
     path('artists/', ArtistList.as_view(), name='api-artist-list'),
     path('artist/create/', ArtistCreateAPIView.as_view(), name='api-create-artist'),

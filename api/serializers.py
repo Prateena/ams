@@ -33,6 +33,7 @@ def is_valid_email(email):
 class RegisterSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(required=True)
     last_name = serializers.CharField(required=True)
+    email = serializers.EmailField(required=True)
 
     class Meta:
         model = CustomUser
@@ -49,6 +50,28 @@ class RegisterSerializer(serializers.ModelSerializer):
         if not re.match(r'^\d{10,15}$', phone):
             raise serializers.ValidationError("Invalid phone number format. Please enter a valid phone number.")
         return phone
+    
+class UserSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    email = serializers.EmailField()
+
+    class Meta:
+        model = CustomUser
+        fields = ['first_name','last_name','email','phone','dob','gender','address']
+
+    def validate_email(self, value):
+        email = value
+        if not is_valid_email(email):
+            raise serializers.ValidationError("Please enter a valid and unique email address.")
+        return email
+    
+    def validate_phone(self, value):
+        phone = value
+        if not re.match(r'^\d{10,15}$', phone):
+            raise serializers.ValidationError("Invalid phone number format. Please enter a valid phone number.")
+        return phone
+
     
 class ArtistSerializer(serializers.ModelSerializer):
     class Meta:

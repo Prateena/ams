@@ -220,6 +220,7 @@
   <!-- Sweet Alert -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@8/dist/sweetalert2.min.js"></script>
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  
   <script>
     $(function () {
       $('#id_dob').datepicker({
@@ -228,13 +229,11 @@
         yearRange: '1900:2050' // Adjust the year range as needed
       });
     });
-  </script>
-  <script>
+
     $(document).ready(function () {
       $('#myTable').DataTable();
     });
-  </script>
-  <script>
+ 
     // Get the element by its ID
     const toggleButton = document.getElementById("sidebarToggle");
     const childSpan = document.getElementById("mySpan");
@@ -255,6 +254,7 @@
         }
     });
   </script>
+
   {% block script %} {% endblock %}
 
 </body>
